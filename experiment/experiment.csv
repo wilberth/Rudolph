@@ -1,0 +1,2 @@
+iCondition; nTrial; nReference; cReference; nNMD;    cNMD; nMND;    cMND; nNMND;   cNMND; dReference;            dTrial
+         0;      100;        2500;    #FFFF00;    0; #FFFF00;    0; #FFFF00;     0; #FFFF00;       0.20;   "Psi(0.10,0.30, initStimuli=[0.10, 0.30, 0.10, 0.30, 0.15, 0.25, 0.15, 0.25])"

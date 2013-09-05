@@ -1,0 +1,2 @@
+#iCondition; nTrial;    x
+1;           2;        np.linspace(0, 1, 11)
