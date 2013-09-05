@@ -38,12 +38,13 @@ class Conditions():
 	function: functor instance 
 	functionKey: key of the value which is to be gotten from 'function'
 	"""
-	def __init__(self, fileName=None):
+	def __init__(self, fileName=None, dataKeys=[]):
 		#default trial variables
 		self.trial = None
 		self.iTrial = 0       # index of current trial, must not be larger than self.nTrial
 		self.nTrial = 0       # total number of trial
 		self.saveFile = None  # file to save data to
+		self.dataKeys = dataKeys
 		self.trial = {}
 		
 		if fileName:
@@ -61,7 +62,11 @@ class Conditions():
 			
 	def saveTrial(self, data):
 		s = ""
+		# the trial itself
 		for key in self.keys:
+			s += str(self.trial[key])+";\t"
+		# the data
+		for key in self.dataKeys:
 			s += str(self.trial[key])+";\t"
 		s += str(data)
 		
@@ -71,7 +76,7 @@ class Conditions():
 		logging.info(s)
 		
 	def load(self, fileName, saveFileName = None):
-		"""Load new list of conditions. """
+		"""Load new list of conditions. Indicate in dataKeys what data will be added to the trials"""
 		
 		# open file to save data
 		if saveFileName == None:
@@ -97,7 +102,7 @@ class Conditions():
 			self.keys = reader.next()
 			self.keys[0] = self.keys[0].lstrip('#')
 			# write header of data file (continaining the experiment file)
-			self.saveFile.write("#" + ";\t".join(self.keys) + ";\n")
+			self.saveFile.write("#" + ";\t".join(self.keys+self.dataKeys) + ";\n")
 			logging.debug("keys: "+str(self.keys))
 			# read subsequent lines as conditions
 
@@ -142,6 +147,9 @@ class Conditions():
 						logging.debug("New style functor: {}".format(value))
 						condition['functionKey'] = self.keys[i]
 						condition['function'] = eval("root."+value)
+					elif re.match('^[a-zA-Z0-9]+$', value): # string
+						#logging.debug("string: {}".format(value))
+						condition[self.keys[i]] = value
 					else:
 						logging.error("ERROR: could not parse value '{}' in row {}, column{}".format(value, reader.line_num, i))
 			
@@ -229,14 +237,24 @@ class Conditions():
 		try:
 			return self.trial[key]
 		except:
+			logging.error("getNumber could not read key: "+key)
 			return 0
 			
 	def getColor(self, key):
-		"get a color from the curren t trial, defaults to [1,1,1]"
+		"get a color from the current trial, defaults to [1,1,1]"
 		try:
 			return self.trial[key]
 		except:
+			logging.error("getColor could not read key: "+key)
 			return np.array([1.0,1.0,1.0], "f")
+
+	def getString(self, key):
+		"get a string from the current trial, defaults to ''"
+		try:
+			return self.trial[key]
+		except:
+			logging.error("getString could not read key: "+key)
+			return ''
 		
 def test(x):
 	return x*x-2

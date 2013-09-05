@@ -99,10 +99,11 @@ class Field(QGLWidget):
 ##		self.homingText = pyttsx.init()
 ##		self.homingText.say('Homing.')
 		#self.beep = pyglet.resource.media('sound\beep-5.wav')
+		self.moveString = "Reference"
 						
 		# experimental conditions
-		self.conditions = conditions.Conditions()
-		
+		self.conditions = conditions.Conditions(dataKeys=['swapMoves'])
+
 	def __del__(self):
 		self.quit()
 
@@ -137,39 +138,43 @@ class Field(QGLWidget):
 			self.requestSleep = False
 			self.parent().toggleText(True)
 		elif self.state=="sleep" or self.state=="home":
-                        self.initializeObjects()
 			self.state = "fadeIn"
+			self.swapMoves = random.random()>0.5
+			if self.swapMoves:
+				self.moveString = "Trial"
+			else:
+				self.moveString = "Reference"
+			self.initializeObjects(self.moveString)
+			self.d = self.conditions.trial["d"+self.moveString]
 			logging.info("state: fadeIn")
 			QTimer.singleShot(350+300, self.changeState) # 350ms for fade in and 300ms to get used to 3D scene
 		elif self.state=="fadeIn":
 			self.state = "move0Prep" # Additional step to allow for singleshot timer start-noise
-			self.swapMoves = random.random()>0.5
-			if self.swapMoves:
-				self.dString = "dTrial"
-			else:
-				self.dString = "dReference"
-			self.d = self.conditions.trial[self.dString]
 			self.soundNoise()
 			QTimer.singleShot(500, self.changeState)
 		elif self.state=="move0Prep":
-                        self.state= "move0"
-			dt = self.sledClient.goto(self.h+self.d, self.tMovement)
-			logging.info("state: move0 ({}): d = {} m, dt = {} s".format(self.dString, self.d, dt))
+			self.state = "move0"
+			dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovement)
+			if self.conditions.trial["mode"+self.moveString] != "visual":
+				dt = self.sledClient.goto(self.h+self.d, self.tMovement)
+			logging.info("state: move0 ({}): d = {} m, dt = {} s".format(self.moveString, self.d, dt))
 			QTimer.singleShot(1000*dt, self.changeState) 
 		elif self.state=="move0":
-                        self.state="move1ReInit"
-                        self.initializeObjects()
-                        QTimer.singleShot(500, self.changeState) # 500ms: The extra milliseconds is to prevent the sled server to overwrite the movement file on the PLC unit while movement is being executed. Furthermore, it prevents perceptual overlap between the comparison and reference (or vice versa) movements.
+			self.state="move1ReInit"
+			if self.swapMoves:
+				self.moveString = "Reference"
+			else:
+				self.moveString = "Trial"
+			self.initializeObjects(self.moveString)
+			QTimer.singleShot(500, self.changeState) # 500ms: The extra milliseconds is to prevent the sled server to overwrite the movement file on the PLC unit while movement is being executed. Furthermore, it prevents perceptual overlap between the comparison and reference (or vice versa) movements.
 		elif self.state=="move1ReInit":
 			self.state = "move1"
-			if self.swapMoves:
-				dString = "dReference"
-			else:
-				dString = "dTrial"
-			d = self.conditions.trial[dString]
+			d = self.conditions.trial["d"+self.moveString]
 			dd = self.conditions.trial['dReference']+self.conditions.trial['dTrial']
-			dt = self.sledClient.goto(self.h+dd, self.tMovement)
-			logging.info("state: move1 ({}): d = {} m, dt = {} s".format(dString, d, dt))
+			dt = self.sledClientSimulator.goto(self.h+dd, self.tMovement)
+			if self.conditions.trial["mode"+self.moveString] != "visual":
+				dt = self.sledClient.goto(self.h+dd, self.tMovement)
+			logging.info("state: move1 ({}): d = {} m, dt = {} s".format(self.moveString, d, dt))
 			QTimer.singleShot(1000*dt+(0.1+0.3*np.random.random_sample()), self.changeState) #"0.1+0.3*np.random.random_sample()": Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
 		elif self.state=="move1":
 			self.state="responseBeep"
@@ -177,7 +182,7 @@ class Field(QGLWidget):
 			self.soundBeep()
 			QTimer.singleShot(350, self.changeState)        # extra timer to make sure that fade out is complete
 		elif self.state=="responseBeep":
-                        self.state="wait"
+			self.state="wait"
 			self.parent().downAction.setEnabled(True)
 			self.parent().upAction.setEnabled(True)
 		elif self.state=="wait":
@@ -190,7 +195,9 @@ class Field(QGLWidget):
 ##			self.homingText.runAndWait()
 			self.initializeObjects() # redraw of new random field of stars
 			self.h =  -self.conditions.trial['dReference']+np.random.uniform(low=-0.1, high=0.02)
-			dt = self.sledClient.goto(self.h, self.tHoming)	# Homing to -reference position
+			dt = self.sledClientSimulator.goto(self.h, self.tHoming)	# Homing to -reference position
+			if self.conditions.trial["mode"+self.moveString] != "visual":
+				dt = self.sledClient.goto(self.h, self.tHoming)	# Homing to -reference position
 			logging.info("state: homing: d = {} m, dt = {} s".format(self.h, dt))
 			QTimer.singleShot(1000*(dt), self.changeState)
 			self.parent().downAction.setEnabled(False)
@@ -203,7 +210,10 @@ class Field(QGLWidget):
 			logging.info("received while waiting: {}".format(data))
 			if self.conditions.iTrial < self.conditions.nTrial-1:
 				if self.swapMoves:
+					self.conditions.trial['swapMoves'] = True
 					data = not data
+				else:
+					self.conditions.trial['swapMoves'] = False
 				self.conditions.nextTrial(data = data)
 			else:
 				# last data
@@ -237,7 +247,7 @@ class Field(QGLWidget):
 		
 	def viewerMove(self, x, y):
 		""" Move the viewer's position """
-		self.pViewer[0] = x #WvH Arjan puts a minus sign here, fpSimulator behaves correctly without
+		self.pViewer[0] = x
 		self.pViewer[1] = y
 		self.update()
 	
@@ -252,6 +262,7 @@ class Field(QGLWidget):
 
 	def connectSledServer(self, server=None):
 		logging.debug("requested sled server: " + str(server))
+		self.sledClientSimulator = sledclientsimulator.SledClientSimulator() # for visual only mode
 		if not server:
 			self.sledClient = sledclientsimulator.SledClientSimulator()
 		else:
@@ -260,7 +271,8 @@ class Field(QGLWidget):
 			self.sledClient.startStream()
 			time.sleep(2)
 		self.h = -self.conditions.trial['dReference']
-		self.sledClient.goto(self.h)	# homing sled at -reference
+		self.sledClient.goto(self.h) # homing sled at -reference
+		self.sledClientSimulator.goto(self.h) # homing sled at -reference
 	
 	def connectPositionServer(self, server=None):
 		""" Connect to a First Principles server which returns the viewer position in the first marker position.
@@ -277,11 +289,17 @@ class Field(QGLWidget):
 			time.sleep(2)
 
 
-	def initializeObjects(self):
+	def initializeObjects(self, moveString="Reference"):
 		# set uniform variables and set up VBO's for the attribute values
 		# reference triangles, do not move in model coordinates
 		# position of the center
-		n = self.conditions.getNumber('nReference')
+		
+		self.nMD  = self.conditions.getNumber('nMD'+moveString)
+		self.nMND = self.conditions.getNumber('nMND'+moveString)
+		self.nNMD = self.conditions.getNumber('nNMD'+moveString)
+		self.nNMND = self.conditions.getNumber('nNMND'+moveString)
+		
+		n = self.nMD
 		pReference = np.random.rand(n, 3) * \
 			[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
 			[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
@@ -300,7 +318,7 @@ class Field(QGLWidget):
 			pReference, 
 			randSeed,
 			disparityFactor,
-                        size,
+			size,
 			]), [ pReference.shape[0], 8 ]) 
 		
 		#******************
@@ -317,10 +335,10 @@ class Field(QGLWidget):
 		# disparityFactor: linspace(0,1,nMND) (no disparity)]
 		
 		# triangle positions,
-		pNoise = np.random.rand(self.conditions.getNumber('nMND'), 3) * \
+		n = self.nMND
+		pNoise = np.random.rand(n, 3) * \
 			[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
 			[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
-		n = self.conditions.getNumber('nMND')
 		randSeed = np.zeros((pNoise.shape[0], 3))
 		#disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))
                 #disparityFactor = np.reshape(np.arange(2,n+2), [n, 1])
@@ -332,7 +350,7 @@ class Field(QGLWidget):
 			pNoise, 
 			randSeed,
 			disparityFactor,
-                        size,
+			size,
 		])
 		
 		# NonMovDisp:
@@ -341,7 +359,7 @@ class Field(QGLWidget):
 		# disparityFactor: 1 (disparity)		
 
 		# triangle positions, 
-		n = self.conditions.getNumber('nNMD')
+		n = self.nNMD
 		pNoise = np.zeros([n, 3])
 		randSeed = np.reshape(np.arange(1,.1+3*n), [n, 3])
 		disparityFactor = np.ones([n, 1])
@@ -350,7 +368,7 @@ class Field(QGLWidget):
 			pNoise, 
 			randSeed,
 			disparityFactor,
-                        size,
+			size,
 		])
 		
 		# NonMovNonDisp:
@@ -359,7 +377,7 @@ class Field(QGLWidget):
 		# disparityFactor: 0 (no disparity)		
 
 		# triangle positions, 
-		n = self.conditions.getNumber('nNMND')
+		n = self.nNMND
 		pNoise = np.zeros([n, 3])
 		randSeed = np.reshape(np.arange(1000,999.1+3*n), [n, 3])
 		disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))#np.zeros((pNoise.shape[0], 1))
@@ -368,7 +386,7 @@ class Field(QGLWidget):
 			pNoise, 
 			randSeed,
 			disparityFactor,
-                        size,
+			size,
 		])
 		#print(np.shape(nonMovNonDispVertices))
 		
@@ -378,8 +396,6 @@ class Field(QGLWidget):
 			[0,0,0, 0,0,0, 1, 0.03],
 		]
 		)
-		
-		
 
 		# send the whole array to the video card
 		self.vbo = vbo.VBO(
@@ -468,10 +484,24 @@ class Field(QGLWidget):
 				self.fadeFactor=max(0.0, self.fadeFactor - 0.05)
 		
 		if hasattr(self, "positionClient"): # only false if mouse is used
-			#pp = self.client.getPosition()         # get marker positions
-			pp = self.positionClient.getPosition(self.positionClient.time()+5./60)          # get marker positions
-			p = np.array(pp).ravel().tolist()       # python has too many types
-			self.viewerMove(2*p[0], 2*p[1])         # use x- and y-coordinate of first marker
+			mode = self.conditions.getString('mode'+self.moveString)
+			if mode=='combined':
+				#pp = self.client.getPosition()         # get marker positions
+				pp = self.positionClient.getPosition(self.positionClient.time()+5./60)          # get marker positions
+				p = np.array(pp).ravel().tolist()       # python has too many types
+				x = 2*p[0]
+				if self.moveString=="Trial":
+					x *= (self.conditions.getNumber("dTrial")+self.conditions.getNumber("dVisualDelta"))/self.conditions.getNumber("dTrial")
+				self.viewerMove(x, 2*p[1])         # use x- and y-coordinate of first marker
+			elif mode=='visual':
+				pp = self.sledClientSimulator.getPosition()
+				p = np.array(pp).ravel().tolist()
+				self.viewerMove(2*p[0], 2*p[1])
+			elif mode=='vestibular':
+				self.viewerMove(self.h)         # use x- and y-coordinate of first marker
+			else:
+				logging.error("mode not recognized: "+mode)
+				
 
 
 		
@@ -510,24 +540,24 @@ class Field(QGLWidget):
 			glVertexAttribPointer(self.sizeLocation, 1, GL_FLOAT, GL_FALSE, 32, self.vbo+28) # index, num per vertex, type, normalize, stride, pointe
 
 			# draw reference triangles in one color
-			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cReference'))
-			n = self.conditions.getNumber('nReference')
+			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cMD'))
+			n = self.nMD
 			glDrawArrays(GL_POINTS, 0, n)
 			
 			# draw noise triangles in another color
 			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cMND'))
 			nPast = n
-			n = self.conditions.getNumber('nMND')
+			n = self.nMND
 			glDrawArrays(GL_POINTS, nPast, n)
 			
 			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cNMD'))
 			nPast += n
-			n = self.conditions.getNumber('nNMD')
+			n = self.nNMD
 			glDrawArrays(GL_POINTS, nPast, n)
 			
 			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cNMND'))
 			nPast += n
-			n = self.conditions.getNumber('nNMND')
+			n = self.nNMND
 			glDrawArrays(GL_POINTS, nPast, n)
 			
 			# draw fixation cross in white
