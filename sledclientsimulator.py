@@ -31,8 +31,8 @@ class SledClientSimulator:
 		self.x0  = 0.0    # position at start of current interval
 		if t==None:
 			t=self.time()
-		self.t0  = t      # time at start of current interval
-		self.v0  = 0.0    # velocity at start of current interval
+		self.t0 = t      # time at start of current interval
+		self.v0 = 0.0    # velocity at start of current interval
 		self.dt = []      # duration of interval
 		self.a = []       # acceleration during interval
 
@@ -60,12 +60,19 @@ class SledClientSimulator:
 		return dt
 		
 		
+	def warpto(self, x):
+		self.x0  = x
+		self.v0 = 0.0
+		self.dt = []
+		self.a = []
+                
 	def goto(self, x, dt=None, t=None):
 		"""Calculate fastest way to get from here at speed v0, to x at speed 0, return time it will take"""
 		if dt!=None:
 			return self.gotoFixedTime(x, dt)
 		if t==None:
 			t=self.time()
+		# self.getXV(t=t) # WvH: something like this, but not quite this
 		self.x0 = self.getX(t) # current position
 		dx = x-self.x0         # requested move
 		

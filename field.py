@@ -151,6 +151,7 @@ class Field(QGLWidget):
 		elif self.state=="fadeIn":
 			self.state = "move0Prep" # Additional step to allow for singleshot timer start-noise
 			self.soundNoise()
+			print("Sled position: ",self.pViewer[0])
 			QTimer.singleShot(500, self.changeState)
 		elif self.state=="move0Prep":
 			self.state = "move0"
@@ -166,14 +167,20 @@ class Field(QGLWidget):
 			else:
 				self.moveString = "Trial"
 			self.initializeObjects(self.moveString)
+			print("Sled position: ",self.pViewer[0])
 			QTimer.singleShot(500, self.changeState) # 500ms: The extra milliseconds is to prevent the sled server to overwrite the movement file on the PLC unit while movement is being executed. Furthermore, it prevents perceptual overlap between the comparison and reference (or vice versa) movements.
 		elif self.state=="move1ReInit":
 			self.state = "move1"
 			d = self.conditions.trial["d"+self.moveString]
-			dd = self.conditions.trial['dReference']+self.conditions.trial['dTrial']
-			dt = self.sledClientSimulator.goto(self.h+dd, self.tMovement)
-			if self.conditions.trial["mode"+self.moveString] != "visual":
-				dt = self.sledClient.goto(self.h+dd, self.tMovement)
+			ddVes=0 # vestibular reference + trial move
+			if self.conditions.trial["modeReference"] != 'visual':
+                                ddVes +=self.conditions.trial['dReference']
+			if self.conditions.trial["modeTrial"] != 'visual':
+                                ddVes +=self.conditions.trial['dTrial']
+			ddAll = self.conditions.trial['dReference']+self.conditions.trial['dTrial']
+			dt = self.sledClientSimulator.goto(self.h+ddAll, self.tMovement)
+			#if self.conditions.trial["mode"+self.moveString] != "visual":
+			dt = self.sledClient.goto(self.h+ddVes, self.tMovement)
 			logging.info("state: move1 ({}): d = {} m, dt = {} s".format(self.moveString, d, dt))
 			QTimer.singleShot(1000*dt+(0.1+0.3*np.random.random_sample()), self.changeState) #"0.1+0.3*np.random.random_sample()": Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
 		elif self.state=="move1":
@@ -195,9 +202,8 @@ class Field(QGLWidget):
 ##			self.homingText.runAndWait()
 			self.initializeObjects() # redraw of new random field of stars
 			self.h =  -self.conditions.trial['dReference']+np.random.uniform(low=-0.1, high=0.02)
-			dt = self.sledClientSimulator.goto(self.h, self.tHoming)	# Homing to -reference position
-			if self.conditions.trial["mode"+self.moveString] != "visual":
-				dt = self.sledClient.goto(self.h, self.tHoming)	# Homing to -reference position
+			self.sledClientSimulator.warpto(self.h)	# Homing to -reference position
+			dt = self.sledClient.goto(self.h, self.tHoming)	# Homing to -reference position
 			logging.info("state: homing: d = {} m, dt = {} s".format(self.h, dt))
 			QTimer.singleShot(1000*(dt), self.changeState)
 			self.parent().downAction.setEnabled(False)
@@ -272,7 +278,7 @@ class Field(QGLWidget):
 			time.sleep(2)
 		self.h = -self.conditions.trial['dReference']
 		self.sledClient.goto(self.h) # homing sled at -reference
-		self.sledClientSimulator.goto(self.h) # homing sled at -reference
+		self.sledClientSimulator.warpto(self.h) # homing sled at -reference
 	
 	def connectPositionServer(self, server=None):
 		""" Connect to a First Principles server which returns the viewer position in the first marker position.
@@ -308,7 +314,9 @@ class Field(QGLWidget):
 		#pReference[0] = np.matrix([0,0,0])
 		randSeed = np.zeros((pReference.shape[0], 3))
 		disparityFactor = np.ones((pReference.shape[0], 1))
-		size = np.random.uniform(0.01,0.05,[n, 1])
+		#size = np.random.uniform(0.01,0.05,[n, 1])
+		size = np.random.normal(0.02,0.01,[n, 1])
+		#size = np.ones((n,1))*0.03
 		# generate vertex array from position arrays
 		# each vertex has:
 		# 3 dimensions (x, y, z)
@@ -340,11 +348,12 @@ class Field(QGLWidget):
 			[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
 			[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
 		randSeed = np.zeros((pNoise.shape[0], 3))
-		#disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))
+		disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))
                 #disparityFactor = np.reshape(np.arange(2,n+2), [n, 1])
                 #disparityFactor = np.reshape(np.linspace(2,12,n), [n, 1])
-		disparityFactor = np.random.uniform(-1,1,[n, 1])
-		size = np.random.uniform(0.01,0.05,[n, 1])
+		#disparityFactor = np.random.uniform(-1,1,[n, 1])
+		#size = np.random.uniform(0.01,0.05,[n, 1])
+		size = np.random.normal(0.02,0.01,[n, 1])
 		# noise vertices
 		movNonDispVertices = np.hstack([
 			pNoise, 
@@ -363,7 +372,7 @@ class Field(QGLWidget):
 		pNoise = np.zeros([n, 3])
 		randSeed = np.reshape(np.arange(1,.1+3*n), [n, 3])
 		disparityFactor = np.ones([n, 1])
-		size = np.random.uniform(0.01,0.05,[n, 1])
+		size = np.random.normal(0.02,0.01,[n, 1])
 		nonMovDispVertices = np.hstack([
 			pNoise, 
 			randSeed,
@@ -381,7 +390,7 @@ class Field(QGLWidget):
 		pNoise = np.zeros([n, 3])
 		randSeed = np.reshape(np.arange(1000,999.1+3*n), [n, 3])
 		disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))#np.zeros((pNoise.shape[0], 1))
-		size = np.random.uniform(0.01,0.05,[n, 1])
+		size = np.random.normal(0.02,0.01,[n, 1])
 		nonMovNonDispVertices = np.hstack([
 			pNoise, 
 			randSeed,
@@ -391,9 +400,19 @@ class Field(QGLWidget):
 		#print(np.shape(nonMovNonDispVertices))
 		
 		# fixation cross
+		xFixation = 0.0
+		if self.conditions.getString("mode"+self.moveString) == 'visual':
+                        try:
+                                #xFixation = self.pViewer[0]
+                                pp = self.positionClient.getPosition()          # get marker positions
+                                p = np.array(pp).ravel().tolist()       # python has too many types
+                                xFixation = 2*p[0]
+                        except:
+                                pass
+                        
 		fixationCrossVertices = np.array(
 		[
-			[0,0,0, 0,0,0, 1, 0.03],
+			[xFixation,0,0, 0,0,0, 1, 0.03],
 		]
 		)
 
@@ -562,7 +581,10 @@ class Field(QGLWidget):
 			
 			# draw fixation cross in white
 			glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([1,1,1],"f"))
-			glUniform1f(self.moveFactorLocation, 1.0)
+			if mode!='visual':
+                                glUniform1f(self.moveFactorLocation, 1.0)
+                        else:
+                                glUniform1f(self.moveFactorLocation, 0.0)
 			nPast += n
 			glUniform1f(self.xEyeLocation, 0)
 			glDrawArrays(GL_POINTS, nPast, 1)
