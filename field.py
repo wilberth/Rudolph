@@ -102,7 +102,7 @@ class Field(QGLWidget):
 		self.moveString = "Reference"
 						
 		# experimental conditions
-		self.conditions = conditions.Conditions(dataKeys=['swapMoves'])
+		self.conditions = conditions.Conditions(dataKeys=['swapMoves', 'subject'])
 
 	def __del__(self):
 		self.quit()
@@ -213,6 +213,7 @@ class Field(QGLWidget):
 			
 	def addData(self, data):
 		if self.state=="wait":
+			self.conditions.trial['subject'] = self.subject # not very useful to store for each trial, but it has to go somewere
 			logging.info("received while waiting: {}".format(data))
 			if self.conditions.iTrial < self.conditions.nTrial-1:
 				if self.swapMoves:
@@ -402,13 +403,13 @@ class Field(QGLWidget):
 		# fixation cross
 		xFixation = 0.0
 		if self.conditions.getString("mode"+self.moveString) == 'visual':
-                        try:
-                                #xFixation = self.pViewer[0]
-                                pp = self.positionClient.getPosition()          # get marker positions
-                                p = np.array(pp).ravel().tolist()       # python has too many types
-                                xFixation = 2*p[0]
-                        except:
-                                pass
+			try:
+				#xFixation = self.pViewer[0]
+				pp = self.positionClient.getPosition()          # get marker positions
+				p = np.array(pp).ravel().tolist()       # python has too many types
+				xFixation = 2*p[0]
+			except:
+				pass
                         
 		fixationCrossVertices = np.array(
 		[

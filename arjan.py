@@ -221,6 +221,11 @@ class Main(QMainWindow):
 			self.field.toggleStereo(True)
 		if args.stereoIntensity:
 			self.field.stereoIntensity(int(args.stereoIntensity))
+		if args.subject:
+			self.field.subject = args.subject
+		else
+			self.field.subject = ""
+		
 
 def main(): 
 	# parse command line arguments
@@ -228,11 +233,12 @@ def main():
 	parser.add_argument("-geometry", help="X11 option")
 	parser.add_argument("-display", help="X11 option")
 	parser.add_argument("-e", "--experiment", help="experiment input file (.csv)")
+	parser.add_argument("-f", "--fullscreen", help="start in full screen mode", action="store_true")
 	parser.add_argument("-s", "--sledServer", help="sled server, default to sled server simulator.")
 	parser.add_argument("-p", "--positionServer", help="position server, defaults to the sled server, but must be a first principles server when explicitly given, use 'mouse' for mouse")
 	parser.add_argument("--stereo", help="Side by side stereoscopic view", action="store_true")
 	parser.add_argument("--stereoIntensity", help="Stereoscopic intensity balance -9 — 9")
-	parser.add_argument("-f", "--fullscreen", help="start in full screen mode", action="store_true")
+	parser.add_argument("--subject", help="Subject ID")
 	parser.add_argument("-r", "--running", help="start in running mode", action="store_true")
 	args = parser.parse_args()
 	
