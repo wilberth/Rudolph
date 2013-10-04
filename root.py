@@ -187,6 +187,7 @@ class Psi:
 
 
 	def __call__(self):
+		# the next two lines are really a thread.join
 		while(self.stim==None):
 			time.sleep(.1)
 
