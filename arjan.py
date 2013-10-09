@@ -211,14 +211,16 @@ class Main(QMainWindow):
 			self.toggleFullScreen()
 		if args.experiment:
 			self.load(fileName=args.experiment)
-		#if args.condition:
-			#self.conditions.setCondition(trial=int(args.condition))
+		if args.lifetime:
+			self.field.lifetime=int(args.lifetime)
 		if args.running:
 			self.startStop()
 		self.field.connectSledServer(args.sledServer)     # defaults to simulator
 		self.field.connectPositionServer(args.positionServer) # defaults to sledserver
 		if args.stereo:
 			self.field.toggleStereo(True)
+		if args.stereoSim:
+			self.field.toggleStereo(True, sim=True)
 		if args.stereoIntensity:
 			self.field.stereoIntensity(int(args.stereoIntensity))
 		if args.subject:
@@ -234,9 +236,11 @@ def main():
 	parser.add_argument("-display", help="X11 option")
 	parser.add_argument("-e", "--experiment", help="experiment input file (.csv)")
 	parser.add_argument("-f", "--fullscreen", help="start in full screen mode", action="store_true")
-	parser.add_argument("-s", "--sledServer", help="sled server, default to sled server simulator.")
+	parser.add_argument("-l", "--lifetime", help="lifetime in frame of moving stars (0=infinite)")
+	parser.add_argument("-s", "--sledServer", help="sled server, default to sled server simulator")
 	parser.add_argument("-p", "--positionServer", help="position server, defaults to the sled server, but must be a first principles server when explicitly given, use 'mouse' for mouse")
 	parser.add_argument("--stereo", help="Side by side stereoscopic view", action="store_true")
+	parser.add_argument("--stereoSim", help="Simulating stereoscopic view", action="store_true")
 	parser.add_argument("--stereoIntensity", help="Stereoscopic intensity balance -9 — 9")
 	parser.add_argument("--subject", help="Subject ID")
 	parser.add_argument("-r", "--running", help="start in running mode", action="store_true")

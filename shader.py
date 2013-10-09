@@ -84,14 +84,13 @@ float rand(uint seed, float min=0.0, float max=1.0){
 	/* divided by 2^32-1 */ 
 }
 
-mat4 MVP(float x, float y){
+mat4 MVP(float xSled, float xEye, float y){
 	// same as above, but now for objects connected to to moving observer
 	return mat4(
-		2*focal/width,              0,                     0,                        0,
-		            0, 2*focal/height,                     0,                        0,
-		   -2*x/width,    -2*y/height, (far+near)/(near-far),                       -1,
-		x*moveFactor*2*focal/width, 0, (2*far*near-focal*(far+near))/(near-far), focal
-		//            0,              0, (2*far*near-focal*(far+near))/(near-far), focal
+		                 2*focal/width,              0,                                        0,    0,
+		                             0, 2*focal/height,                                        0,    0,
+		         -2*(xSled+xEye)/width,    -2*y/height,                    (far+near)/(near-far),   -1,
+		xSled*moveFactor*2*focal/width,              0, (2*far*near-focal*(far+near))/(near-far), focal
 		);
 }
 
@@ -109,10 +108,10 @@ void main() {
 			else
 				p[i] = 2.3*rand(((uint(nFrame)+randSeed[0])/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
 	//if (disparityFactor != 0 || disparityFactor !=1)
-        //        disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
-        //else
-        //        disparityFactorFactor = disparityFactor;
-	mat4 M = MVP(x+disparityFactor * xEye, y);
+		//disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
+	//else
+		//disparityFactorFactor = disparityFactor;
+	mat4 M = MVP(x, disparityFactor * xEye, y);
 	sizeClip = (M*(p+vec4(0.5*size, 0.5*size, 0, 0)) - M*(p-vec4(0.5*size, 0.5*size, 0.0, 0.0))).xy;
 	gl_Position = M * p;
 }

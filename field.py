@@ -87,6 +87,7 @@ class Field(QGLWidget):
 		self.fadeFactor = 1.0         # no fade, fully exposed
 		self.state = "sleep"
 		self.requestSleep = False
+		self.lifetime=60
 		
 		# audio
 		self.mediaObject = Phonon.MediaObject(self)
@@ -232,9 +233,12 @@ class Field(QGLWidget):
 			logging.info("ignoring input: {}".format(data))
 	
 	views = ('ALL',)
-	def toggleStereo(self, on):
+	def toggleStereo(self, on, sim=False):
 		if on or len(self.views)==1:
-			self.views = ('LEFT', 'RIGHT')
+			if sim:
+				self.views = ('LEFTSIM', 'RIGHTSIM')
+			else:
+				self.views = ('LEFT', 'RIGHT')
 			self.parent().leftAction.setEnabled(True)
 			self.parent().rightAction.setEnabled(True)
 		else:
@@ -318,7 +322,7 @@ class Field(QGLWidget):
 		randSeed.dtype='float32'
 		disparityFactor = np.ones((n, 1), dtype='float32')
 		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
-		lifetime = 60*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
+		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 
 		# each vertex has:
 		# 3 dimensions (x, y, z)
@@ -352,7 +356,7 @@ class Field(QGLWidget):
 		randSeed.dtype='float32'
 		disparityFactor = np.zeros((position.shape[0], 1), dtype='float32')
 		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
-		lifetime = 60*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
+		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		# noise vertices
 		movNonDispVertices = np.hstack([
 			position, 
@@ -551,8 +555,16 @@ class Field(QGLWidget):
 				glViewport(0, 0, self.width/2, self.height)
 				glUniform1f(self.xEyeLocation, -self.dEyes/2)
 				intensityLevel = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1][self.stereoIntensityLevel-10]
+			elif eye == 'LEFTSIM':
+				glViewport(0, 0, self.width, self.height)
+				glUniform1f(self.xEyeLocation, -self.dEyes/2)
+				intensityLevel = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1][self.stereoIntensityLevel-10]
 			elif eye == 'RIGHT':
 				glViewport(self.width/2, 0, self.width/2, self.height)
+				glUniform1f(self.xEyeLocation, self.dEyes/2)
+				intensityLevel = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0][self.stereoIntensityLevel-10]
+			elif eye == 'RIGHTSIM':
+				glViewport(0, 0, self.width, self.height)
 				glUniform1f(self.xEyeLocation, self.dEyes/2)
 				intensityLevel = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0][self.stereoIntensityLevel-10]
 			else:
@@ -578,10 +590,10 @@ class Field(QGLWidget):
 			glEnableVertexAttribArray(self.lifetimeLocation)
 			glVertexAttribIPointer(self.lifetimeLocation, 1, GL_UNSIGNED_INT, 36, self.vbo+32)
 			
-			#if mode!='visual':
-				#glUniform1f(self.moveFactorLocation, 0.0)
-			#else:
-				#glUniform1f(self.moveFactorLocation, -1.0)
+			if mode!='visual':
+				glUniform1f(self.moveFactorLocation, 0.0)
+			else:
+				glUniform1f(self.moveFactorLocation, -1.0)
 			
 			# draw reference triangles in one color
 			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cMD'))
