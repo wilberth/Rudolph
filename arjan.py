@@ -223,7 +223,7 @@ class Main(QMainWindow):
 			self.field.stereoIntensity(int(args.stereoIntensity))
 		if args.subject:
 			self.field.subject = args.subject
-		else
+		else:
 			self.field.subject = ""
 		
 

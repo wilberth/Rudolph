@@ -63,80 +63,25 @@ uniform int nFrame;                                  // frame number
 uniform float moveFactor;                            // relative moving along with the observer of objects
 
 in vec3 position;                             // vertex coordinate
-in vec3 randSeed;                             // random seed for random placement ( (0,0,0) if coodinates are used directly)
+in uvec3 randSeed;                             // random seed for random placement ( (0,0,0) if coodinates are used directly)
 in float disparityFactor;                     // scaling for xEye (1 if normal disparity is shown, 0 for no disparity)
 in float size;                                // linear size of stars
+in uint lifetime;                             // lifetime of star in number of frames
 out vec2 sizeClip;                            // size in clip coordinates
 
-//
-// Description : Array and textureless GLSL 2D simplex noise function.
-//      Author : Ian McEwan, Ashima Arts.
-//  Maintainer : ijm
-//     Lastmod : 20110822 (ijm)
-//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
-//               Distributed under the MIT License. See LICENSE file.
-//               https://github.com/ashima/webgl-noise
-// 
-
-vec3 mod289(vec3 x) {
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
+uint wang_hash(uint seed){
+	seed = (seed ^ 61U) ^ (seed >> 16U);
+	seed *= 9U;
+	seed = seed ^ (seed >> 4U);
+	seed *= 0x27d4eb2dU;
+	seed = seed ^ (seed >> 15U);
+	return seed;
 }
 
-vec2 mod289(vec2 x) {
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-vec3 permute(vec3 x) {
-  return mod289(((x*34.0)+1.0)*x);
-}
-
-float snoise(vec2 v)  {
-  // simplex noise, The next Perlin noise algorithm
-  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
-                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
-                     -0.577350269189626,  // -1.0 + 2.0 * C.x
-                      0.024390243902439); // 1.0 / 41.0
-// First corner
-  vec2 i  = floor(v + dot(v, C.yy) );
-  vec2 x0 = v -   i + dot(i, C.xx);
-
-// Other corners
-  vec2 i1;
-  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0
-  //i1.y = 1.0 - i1.x;
-  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-  // x0 = x0 - 0.0 + 0.0 * C.xx ;
-  // x1 = x0 - i1 + 1.0 * C.xx ;
-  // x2 = x0 - 1.0 + 2.0 * C.xx ;
-  vec4 x12 = x0.xyxy + C.xxzz;
-  x12.xy -= i1;
-
-// Permutations
-  i = mod289(i); // Avoid truncation effects in permutation
-  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-		+ i.x + vec3(0.0, i1.x, 1.0 ));
-
-  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-  m = m*m ;
-  m = m*m ;
-
-// Gradients: 41 points uniformly over a line, mapped onto a diamond.
-// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
-
-  vec3 x = 2.0 * fract(p * C.www) - 1.0;
-  vec3 h = abs(x) - 0.5;
-  vec3 ox = floor(x + 0.5);
-  vec3 a0 = x - ox;
-
-// Normalise gradients implicitly by scaling m
-// Approximation of: m *= inversesqrt( a0*a0 + h*h );
-  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-
-// Compute final noise value at P
-  vec3 g;
-  g.x  = a0.x  * x0.x  + h.x  * x0.y;
-  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-  return 130.0 * dot(m, g);
+/* generates a random number on [0,1]-real-interval */
+float rand(uint seed, float min=0.0, float max=1.0){
+	return float(wang_hash(seed))*((max-min)/4294967295.0)+min;
+	/* divided by 2^32-1 */ 
 }
 
 mat4 MVP(float x, float y){
@@ -156,9 +101,13 @@ void main() {
 	vec3 max = vec3(width/2, height/2, focal-near);
 	float disparityFactorFactor = 0.0;
 	for(int i=0; i<3; i++)
-		if (randSeed[i] != 0)
+		if (randSeed[i] != 0U)
 			//p[i] += min[i]+(max[i]-min[i])*(snoise(vec2(float(nFrame), randSeed[i])));
-			p[i] += 2.3*max[i]*(snoise(vec2(float(nFrame), randSeed[i])));
+			//p[i] += 2.3*max[i]*(snoise(vec2(float(nFrame), randSeed[i])));
+			if(lifetime==0U)
+				p[i] = 2.3*rand(randSeed[i], min[i], max[i]);
+			else
+				p[i] = 2.3*rand(((uint(nFrame)+randSeed[0])/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
 	//if (disparityFactor != 0 || disparityFactor !=1)
         //        disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
         //else

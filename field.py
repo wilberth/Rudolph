@@ -139,7 +139,7 @@ class Field(QGLWidget):
 			self.parent().toggleText(True)
 		elif self.state=="sleep" or self.state=="home":
 			self.state = "fadeIn"
-			self.swapMoves = random.random()>0.5
+			self.swapMoves = np.random.uniform()>0.5
 			if self.swapMoves:
 				self.moveString = "Trial"
 			else:
@@ -182,7 +182,8 @@ class Field(QGLWidget):
 			#if self.conditions.trial["mode"+self.moveString] != "visual":
 			dt = self.sledClient.goto(self.h+ddVes, self.tMovement)
 			logging.info("state: move1 ({}): d = {} m, dt = {} s".format(self.moveString, d, dt))
-			QTimer.singleShot(1000*dt+(0.1+0.3*np.random.random_sample()), self.changeState) #"0.1+0.3*np.random.random_sample()": Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
+			QTimer.singleShot(1000*dt+np.random.uniform(0.1, 0.3), self.changeState) #Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
+
 		elif self.state=="move1":
 			self.state="responseBeep"
 			logging.info("state: wait (for input)")
@@ -306,29 +307,30 @@ class Field(QGLWidget):
 		self.nNMD = self.conditions.getNumber('nNMD'+moveString)
 		self.nNMND = self.conditions.getNumber('nNMND'+moveString)
 		
+		nPast = 0
 		n = self.nMD
-		pReference = np.random.rand(n, 3) * \
-			[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
-			[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
-		
-		# Fixation point triangle in origin
-		#pReference[0] = np.matrix([0,0,0])
-		randSeed = np.zeros((pReference.shape[0], 3))
-		disparityFactor = np.ones((pReference.shape[0], 1))
-		#size = np.random.uniform(0.01,0.05,[n, 1])
-		size = np.random.normal(0.02,0.01,[n, 1])
-		#size = np.ones((n,1))*0.03
-		# generate vertex array from position arrays
+		#position = np.random.rand(n, 3) * \
+		#	[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
+		#	[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
+		position = np.zeros((n, 3), dtype='float32')
+		#randSeed = np.reshape(np.arange(1+3*nPast, 1+3*(nPast+n), dtype="uint32"), (n, 3))
+		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
+		randSeed.dtype='float32'
+		disparityFactor = np.ones((n, 1), dtype='float32')
+		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		lifetime = 60*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
+
 		# each vertex has:
 		# 3 dimensions (x, y, z)
 		# 3 randSeeds (one for each dimension), these are 0 for non random
 		# 1 disparityFactor, this is 1 if disparity is used
-		referenceVertices = np.reshape(np.hstack([
-			pReference, 
+		referenceVertices = np.hstack([
+			position, 
 			randSeed,
 			disparityFactor,
 			size,
-			]), [ pReference.shape[0], 8 ]) 
+			lifetime,
+		])
 		
 		#******************
 		# Noise triangles *
@@ -342,65 +344,69 @@ class Field(QGLWidget):
 		#************
 		# randSeeds: 0 (Non random movement)
 		# disparityFactor: linspace(0,1,nMND) (no disparity)]
-		
-		# triangle positions,
+		nPast += n
 		n = self.nMND
-		pNoise = np.random.rand(n, 3) * \
-			[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
-			[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
-		randSeed = np.zeros((pNoise.shape[0], 3))
-		disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))
-                #disparityFactor = np.reshape(np.arange(2,n+2), [n, 1])
-                #disparityFactor = np.reshape(np.linspace(2,12,n), [n, 1])
-		#disparityFactor = np.random.uniform(-1,1,[n, 1])
-		#size = np.random.uniform(0.01,0.05,[n, 1])
-		size = np.random.normal(0.02,0.01,[n, 1])
+		position = np.zeros((n, 3), dtype='float32')
+		#randSeed = np.reshape(np.arange(1+3*nPast, 1+3*(nPast+n), dtype="uint32"), (n, 3))
+		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
+		randSeed.dtype='float32'
+		disparityFactor = np.zeros((position.shape[0], 1), dtype='float32')
+		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		lifetime = 60*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		# noise vertices
 		movNonDispVertices = np.hstack([
-			pNoise, 
+			position, 
 			randSeed,
 			disparityFactor,
 			size,
+			lifetime,
 		])
 		
 		# NonMovDisp:
 		#************
 		# randSeeds: array of predetermined numbers (random movement)
 		# disparityFactor: 1 (disparity)		
-
-		# triangle positions, 
+		nPast += n
 		n = self.nNMD
-		pNoise = np.zeros([n, 3])
-		randSeed = np.reshape(np.arange(1,.1+3*n), [n, 3])
-		disparityFactor = np.ones([n, 1])
-		size = np.random.normal(0.02,0.01,[n, 1])
+		position = np.zeros((n, 3), dtype='float32')
+		#randSeed = np.reshape(np.arange(1+3*nPast, 1+3*(nPast+n), dtype="uint32"), (n, 3))
+		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
+		randSeed.dtype='float32'
+		disparityFactor = np.ones((n, 1), dtype='float32')
+		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		lifetime = np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		nonMovDispVertices = np.hstack([
-			pNoise, 
+			position, 
 			randSeed,
 			disparityFactor,
 			size,
+			lifetime,
 		])
 		
 		# NonMovNonDisp:
 		#***************
 		# randSeeds: array of predetermined numbers (random movement)
 		# disparityFactor: 0 (no disparity)		
-
-		# triangle positions, 
+		nPast += n
 		n = self.nNMND
-		pNoise = np.zeros([n, 3])
-		randSeed = np.reshape(np.arange(1000,999.1+3*n), [n, 3])
-		disparityFactor = np.zeros((pNoise.shape[0], 1))#np.transpose(np.matrix(np.linspace(-1,1,trial['nMND'])))#np.zeros((pNoise.shape[0], 1))
-		size = np.random.normal(0.02,0.01,[n, 1])
+		position = np.zeros((n, 3), dtype='float32')
+		#randSeed = np.reshape(np.arange(1+3*nPast, 1+3*(nPast+n), dtype="uint32"), (n, 3))
+		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
+		randSeed.dtype='float32'
+		disparityFactor = np.zeros((n, 1), dtype='float32')
+		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		lifetime = np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		nonMovNonDispVertices = np.hstack([
-			pNoise, 
+			position, 
 			randSeed,
 			disparityFactor,
 			size,
+			lifetime,
 		])
 		#print(np.shape(nonMovNonDispVertices))
 		
 		# fixation cross
+		nPast += n
 		xFixation = 0.0
 		if self.conditions.getString("mode"+self.moveString) == 'visual':
 			try:
@@ -410,13 +416,27 @@ class Field(QGLWidget):
 				xFixation = 2*p[0]
 			except:
 				pass
+			
+			
+		position = np.array([xFixation, 0, 0], dtype='float32')
+		randSeed = np.array([0, 0, 0], dtype='uint32'); randSeed.dtype = 'float32'
+		disparityFactor = np.array(1.0, dtype='float32')
+		size = np.array(0.03, dtype='float32')
+		lifetime = np.array(0, dtype='uint32'); lifetime.dtype='float32'
                         
-		fixationCrossVertices = np.array(
-		[
-			[xFixation,0,0, 0,0,0, 1, 0.03],
-		]
-		)
+		fixationCrossVertices = np.hstack([
+			position, 
+			randSeed,
+			disparityFactor,
+			size,
+			lifetime,
+		])
 
+		assert (referenceVertices.dtype=='float32')
+		assert (movNonDispVertices.dtype=='float32')
+		assert (nonMovDispVertices.dtype=='float32')
+		assert (nonMovNonDispVertices.dtype=='float32')
+		assert (fixationCrossVertices.dtype=='float32')
 		# send the whole array to the video card
 		self.vbo = vbo.VBO(
 			np.vstack([
@@ -426,7 +446,6 @@ class Field(QGLWidget):
 				np.array(nonMovNonDispVertices, "f"), 
 				np.array(fixationCrossVertices, "f")]), 
 			usage='GL_STATIC_DRAW')
-			
 
 		# uniforms
 		glUniform1f(self.widthLocation, self.dScreen[0])
@@ -434,13 +453,12 @@ class Field(QGLWidget):
 		glUniform1f(self.nearLocation, self.pViewer[2]-self.zNear)
 		glUniform1f(self.focalLocation, self.pViewer[2]-self.zFocal)
 		glUniform1f(self.farLocation, self.pViewer[2]-self.zFar)
-		#glUniform1f(self.sizeLocation, 0.03)
 
 		
 	def initializeGL(self):
 		glEnable(GL_DEPTH_TEST)          # painters algorithm without this
 		glEnable(GL_MULTISAMPLE)         # anti aliasing
-		glClearColor(0.0, 0.0, 0.0, 1.0) # set to black in production version
+		glClearColor(0.0, 0.0, 0.0, 1.0) # blac k background
 		
 		# set up the shaders
 		self.program = shader.initializeShaders(shader.vs, shader.fs, geometryShaderString=shader.gs)
@@ -458,7 +476,6 @@ class Field(QGLWidget):
 		self.fadeFactorLocation = glGetUniformLocation(self.program, "fadeFactor")
 		self.moveFactorLocation = glGetUniformLocation(self.program, "moveFactor")
 		self.colorLocation = glGetUniformLocation(self.program, "color")
-		#self.sizeLocation = glGetUniformLocation(self.program, "size")              # star linear size in m
 		#subroutine uniforms
 		#self.MVPLocation = glGetSubroutineUniformLocation(self.program, GL_VERTEX_SHADER, "MVPFunc")
 		#self.MVPIndex = glGetSubroutineIndex(self.program, GL_VERTEX_SHADER, "MVP")
@@ -468,7 +485,9 @@ class Field(QGLWidget):
 		self.positionLocation = glGetAttribLocation(self.program, 'position')
 		self.randSeedLocation = glGetAttribLocation(self.program, 'randSeed')
 		self.disparityFactorLocation = glGetAttribLocation(self.program, 'disparityFactor')
-		self.sizeLocation = glGetAttribLocation(self.program, "size")              # star linear size in m
+		self.sizeLocation = glGetAttribLocation(self.program, "size") # star linear size in m
+		self.lifetimeLocation = glGetAttribLocation(self.program, "lifetime") # star lifetime in frames
+		print("#### {}".format(self.lifetimeLocation))
 
 		
 		glUniform3f(self.colorLocation, 1,0,1)
@@ -499,9 +518,9 @@ class Field(QGLWidget):
 		if self.fadeFactorLocation != -1:
 			glUniform1f(self.fadeFactorLocation, self.fadeFactor)
 			if self.state=="fadeIn" and self.fadeFactor < 0.999:
-				self.fadeFactor=min(1.0, self.fadeFactor + 0.05)
+				self.fadeFactor=min(1.0, self.fadeFactor + 0.1)
 			elif self.state=="responseBeep" and self.fadeFactor > 0.001:
-				self.fadeFactor=max(0.0, self.fadeFactor - 0.05)
+				self.fadeFactor=max(0.0, self.fadeFactor - 0.1)
 		
 		if hasattr(self, "positionClient"): # only false if mouse is used
 			mode = self.conditions.getString('mode'+self.moveString)
@@ -545,22 +564,28 @@ class Field(QGLWidget):
 			glUniform1f(self.yLocation, self.pViewer[1])
 			glUniform1f(self.moveFactorLocation, 0.0)
 
-			## draw, from buffer
-			self.vbo.bind() # get data from vbo with vertices
-			
-			#enable the three components in the VBO
 			glEnableClientState(GL_VERTEX_ARRAY)
+			# enable stuff from float VBO
+			self.vbo.bind() # get data from vbo with vertices
 			glEnableVertexAttribArray(self.positionLocation)
-			glVertexAttribPointer(self.positionLocation, 3, GL_FLOAT, GL_FALSE, 32, self.vbo) # index, num per vertex, type, normalize, stride, pointe
+			glVertexAttribPointer(self.positionLocation, 3, GL_FLOAT, GL_FALSE, 36, self.vbo)
 			glEnableVertexAttribArray(self.randSeedLocation)
-			glVertexAttribPointer(self.randSeedLocation, 3, GL_FLOAT, GL_FALSE, 32, self.vbo+12) # index, num per vertex, type, normalize, stride, pointe
+			glVertexAttribIPointer(self.randSeedLocation, 3, GL_UNSIGNED_INT, 36, self.vbo+12)
 			glEnableVertexAttribArray(self.disparityFactorLocation)
-			glVertexAttribPointer(self.disparityFactorLocation, 1, GL_FLOAT, GL_FALSE, 32, self.vbo+24) # index, num per vertex, type, normalize, stride, pointe
+			glVertexAttribPointer(self.disparityFactorLocation, 1, GL_FLOAT, GL_FALSE, 36, self.vbo+24)
 			glEnableVertexAttribArray(self.sizeLocation)
-			glVertexAttribPointer(self.sizeLocation, 1, GL_FLOAT, GL_FALSE, 32, self.vbo+28) # index, num per vertex, type, normalize, stride, pointe
-
+			glVertexAttribPointer(self.sizeLocation, 1, GL_FLOAT, GL_FALSE, 36, self.vbo+28)
+			glEnableVertexAttribArray(self.lifetimeLocation)
+			glVertexAttribIPointer(self.lifetimeLocation, 1, GL_UNSIGNED_INT, 36, self.vbo+32)
+			
+			#if mode!='visual':
+				#glUniform1f(self.moveFactorLocation, 0.0)
+			#else:
+				#glUniform1f(self.moveFactorLocation, -1.0)
+			
 			# draw reference triangles in one color
 			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cMD'))
+			nPast = 0
 			n = self.nMD
 			glDrawArrays(GL_POINTS, 0, n)
 			
@@ -583,13 +608,14 @@ class Field(QGLWidget):
 			# draw fixation cross in white
 			glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([1,1,1],"f"))
 			if mode!='visual':
-                                glUniform1f(self.moveFactorLocation, 1.0)
-                        else:
-                                glUniform1f(self.moveFactorLocation, 0.0)
+				glUniform1f(self.moveFactorLocation, 1.0)
+			else:
+				glUniform1f(self.moveFactorLocation, 0.0)
 			nPast += n
 			glUniform1f(self.xEyeLocation, 0)
 			glDrawArrays(GL_POINTS, nPast, 1)
 			self.vbo.unbind()
+			glDisableClientState(GL_VERTEX_ARRAY)
 			
 
 		## schedule next redraw
