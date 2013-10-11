@@ -257,10 +257,12 @@ class Field(QGLWidget):
 		self.parent().statusBar().showMessage("Stereo intensity: {}".format(self.stereoIntensityLevel))
 		self.update()
 		
-	def viewerMove(self, x, y):
+	def viewerMove(self, x, y=None):
 		""" Move the viewer's position """
+		print("viewermove: ({}, {})".format(x, y))
 		self.pViewer[0] = x
-		self.pViewer[1] = y
+		if y != None:
+			self.pViewer[1] = y
 		self.update()
 	
 	
@@ -529,7 +531,6 @@ class Field(QGLWidget):
 		if hasattr(self, "positionClient"): # only false if mouse is used
 			mode = self.conditions.getString('mode'+self.moveString)
 			if mode=='combined':
-				#pp = self.client.getPosition()         # get marker positions
 				pp = self.positionClient.getPosition(self.positionClient.time()+5./60)          # get marker positions
 				p = np.array(pp).ravel().tolist()       # python has too many types
 				x = 2*p[0]
