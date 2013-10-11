@@ -260,7 +260,8 @@ class Field(QGLWidget):
 	def viewerMove(self, x, y):
 		""" Move the viewer's position """
 		self.pViewer[0] = x
-		self.pViewer[1] = y
+		#self.pViewer[1] = y
+		self.pViewer[1] = 0
 		self.update()
 	
 	
@@ -321,7 +322,8 @@ class Field(QGLWidget):
 		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
 		randSeed.dtype='float32'
 		disparityFactor = np.ones((n, 1), dtype='float32')
-		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		#size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		size = 0.015*np.ones((n,1), dtype='float32')
 		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 
 		# each vertex has:
@@ -523,7 +525,7 @@ class Field(QGLWidget):
 			glUniform1f(self.fadeFactorLocation, self.fadeFactor)
 			if self.state=="fadeIn" and self.fadeFactor < 0.999:
 				self.fadeFactor=min(1.0, self.fadeFactor + 0.1)
-			elif self.state=="responseBeep" and self.fadeFactor > 0.001:
+			elif self.state=="fadeOut" and self.fadeFactor > 0.001:
 				self.fadeFactor=max(0.0, self.fadeFactor - 0.1)
 		
 		if hasattr(self, "positionClient"): # only false if mouse is used
