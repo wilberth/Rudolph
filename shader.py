@@ -107,7 +107,7 @@ void main() {
 			if(lifetime==0U)
 				p[i] = 2.0*rand(randSeed[i], min[i], max[i]);
 			else
-				p[i] = 2.0*rand(((uint(nFrame)+randSeed[0])/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
+				p[i] = 2.0*rand(((uint(nFrame)+randSeed.x)/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
 	//if (disparityFactor != 0 || disparityFactor !=1)
 		//disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
 	//else

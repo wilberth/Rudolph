@@ -322,8 +322,8 @@ class Field(QGLWidget):
 		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
 		randSeed.dtype='float32'
 		disparityFactor = np.ones((n, 1), dtype='float32')
-		#size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
-		size = 0.015*np.ones((n,1), dtype='float32')
+		size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
+		#size = 0.015*np.ones((n,1), dtype='float32')
 		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 
 		# each vertex has:
@@ -357,7 +357,7 @@ class Field(QGLWidget):
 		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
 		randSeed.dtype='float32'
 		disparityFactor = np.zeros((position.shape[0], 1), dtype='float32')
-		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
 		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		# noise vertices
 		movNonDispVertices = np.hstack([
@@ -379,7 +379,7 @@ class Field(QGLWidget):
 		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
 		randSeed.dtype='float32'
 		disparityFactor = np.ones((n, 1), dtype='float32')
-		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
 		lifetime = np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		nonMovDispVertices = np.hstack([
 			position, 
@@ -400,7 +400,7 @@ class Field(QGLWidget):
 		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
 		randSeed.dtype='float32'
 		disparityFactor = np.zeros((n, 1), dtype='float32')
-		size = np.array(np.random.normal(0.02, 0.01, (n, 1)), dtype='float32')
+		size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
 		lifetime = np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 		nonMovNonDispVertices = np.hstack([
 			position, 
@@ -427,7 +427,7 @@ class Field(QGLWidget):
 		position = np.array([xFixation, 0, 0], dtype='float32')
 		randSeed = np.array([0, 0, 0], dtype='uint32'); randSeed.dtype = 'float32'
 		disparityFactor = np.array(1.0, dtype='float32')
-		size = np.array(0.03, dtype='float32')
+		size = np.array(0.02, dtype='float32')
 		lifetime = np.array(0, dtype='uint32'); lifetime.dtype='float32'
                         
 		fixationCrossVertices = np.hstack([
@@ -525,7 +525,7 @@ class Field(QGLWidget):
 			glUniform1f(self.fadeFactorLocation, self.fadeFactor)
 			if self.state=="fadeIn" and self.fadeFactor < 0.999:
 				self.fadeFactor=min(1.0, self.fadeFactor + 0.1)
-			elif self.state=="fadeOut" and self.fadeFactor > 0.001:
+			elif self.state=="responseBeep" and self.fadeFactor > 0.001:
 				self.fadeFactor=max(0.0, self.fadeFactor - 0.1)
 		
 		if hasattr(self, "positionClient"): # only false if mouse is used

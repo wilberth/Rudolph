@@ -1,0 +1,2 @@
+iCondition; nTrial; nMDReference;nMDTrial; cMD; nNMDReference;nNMDTrial;    cNMD; nMNDReference;nMNDTrial;    cMND; nNMNDReference;nNMNDTrial;   cNMND;modeReference;modeTrial; dReference;            dTrial; dVisualDelta
+0;100;2500;2500;    #FFFF00;0;0; #FFFF00;0;0; #FFFF00;0;0; #FFFF00;combined;combined;       0.20;Psi(0.10,0.30, initStimuli=[0.10, 0.30, 0.10, 0.30, 0.15, 0.25, 0.15, 0.25]); 0.0
