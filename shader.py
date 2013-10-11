@@ -96,21 +96,23 @@ mat4 MVP(float xSled, float xEye, float y){
 
 void main() {
 	vec4 p = vec4(position, 1.0);
-	vec3 min = vec3(-width/2, -height/2, focal-far);
-	vec3 max = vec3(width/2, height/2, focal-near);
+	float d = 0.40; // maximum horizontal displacement of viewer
+	vec3 max = vec3((width/2+d)*far/focal, height/2*far/focal, focal-near);
+	vec3 min = vec3(-max.xy, focal-far);
 	float disparityFactorFactor = 0.0;
 	for(int i=0; i<3; i++)
 		if (randSeed[i] != 0U)
 			//p[i] += min[i]+(max[i]-min[i])*(snoise(vec2(float(nFrame), randSeed[i])));
 			//p[i] += 2.3*max[i]*(snoise(vec2(float(nFrame), randSeed[i])));
 			if(lifetime==0U)
-				p[i] = 2.3*rand(randSeed[i], min[i], max[i]);
+				p[i] = 2.0*rand(randSeed[i], min[i], max[i]);
 			else
-				p[i] = 2.3*rand(((uint(nFrame)+randSeed[0])/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
+				p[i] = 2.0*rand(((uint(nFrame)+randSeed.x)/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
 	//if (disparityFactor != 0 || disparityFactor !=1)
 		//disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
 	//else
 		//disparityFactorFactor = disparityFactor;
+	//p.z=0;
 	mat4 M = MVP(x, disparityFactor * xEye, y);
 	sizeClip = (M*(p+vec4(0.5*size, 0.5*size, 0, 0)) - M*(p-vec4(0.5*size, 0.5*size, 0.0, 0.0))).xy;
 	gl_Position = M * p;
