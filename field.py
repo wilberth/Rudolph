@@ -259,15 +259,12 @@ class Field(QGLWidget):
 		
 	def viewerMove(self, x, y=None):
 		""" Move the viewer's position """
-		print("viewermove: ({}, {})".format(x, y))
+		#print("viewermove: ({}, {})".format(x, y))
 		self.pViewer[0] = x
-<<<<<<< HEAD
+		self.pViewer[1] = 0
 		if y != None:
 			self.pViewer[1] = y
-=======
-		#self.pViewer[1] = y
-		self.pViewer[1] = 0
->>>>>>> acterhorst/master
+		
 		self.update()
 	
 	
