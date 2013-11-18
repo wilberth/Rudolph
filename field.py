@@ -104,8 +104,11 @@ class Field(QGLWidget):
 		self.moveString = "Reference"
 		
 		# shutter glasses
-		self.shutter = buttonbox.Buttonbox() # optionally add port="COM17"
-		self.openShutter(True, True)
+		try:
+			self.shutter = buttonbox.Buttonbox() # optionally add port="COM17"
+			self.openShutter(True, True)
+		except Exception as e:
+			print(e)
 						
 		# experimental conditions
 		self.conditions = conditions.Conditions(dataKeys=['swapMoves', 'subject'])
@@ -311,8 +314,10 @@ class Field(QGLWidget):
 
 	def openShutter(self, left=True, right=True):
 		"""open shutter glasses"""
-		self.shutter.setLeds([left, right, True, True, True, True, True, True])
-		print([left, right, True, True, True, True, True, True])
+		try:
+			self.shutter.setLeds([left, right, True, True, True, True, True, True])
+		except:
+			pass
 
 	def initializeObjects(self, moveString="Reference"):
 		# set uniform variables and set up VBO's for the attribute values
@@ -512,7 +517,6 @@ class Field(QGLWidget):
 		self.disparityFactorLocation = glGetAttribLocation(self.program, 'disparityFactor')
 		self.sizeLocation = glGetAttribLocation(self.program, "size") # star linear size in m
 		self.lifetimeLocation = glGetAttribLocation(self.program, "lifetime") # star lifetime in frames
-		print("#### {}".format(self.lifetimeLocation))
 
 		
 		glUniform3f(self.colorLocation, 1,0,1)
