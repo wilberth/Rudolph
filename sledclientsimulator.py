@@ -42,7 +42,7 @@ class Move(object):
 			self.__class__.__name__,
 			self.t0, self.t1, self.x0, self.x1)
 	def getX(self, t):
-		return self.getXV(t)[0]
+		return self.getXVA(t)[0]
 	def getXV(self, t):
 		x, v, a = self.getXVA(t)
 		return (x, v)
@@ -63,7 +63,7 @@ class Move(object):
 		return self.sigmoid(t)
 	def sigmoid(self, t):
 		"""Any function through 0,0 and 1,1 and its derivative, override this one"""
-		return (t, 1)
+		return (t, 1, 0)
 
 class ConstantAccelerationMove(Move):
 	"""Piecewise constant acceleration move. """
@@ -199,7 +199,7 @@ class SledClientSimulator:
 		"same method as in fpClient"
 		if t==None:
 			t=self.time()
-		return np.array([self.getX(), 1.0, 0])
+		return np.array([self.getX(), 0, 0])
 	def getX(self, t=None):
 		"""return current position"""
 		x, v = self.getXV(t)

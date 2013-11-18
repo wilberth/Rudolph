@@ -21,6 +21,7 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 import sys, math, time, numpy as np, random, serial, ctypes, re
 import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions
+from rusocsci import buttonbox
 
 #PyQt
 from PyQt4.QtCore import *
@@ -101,6 +102,10 @@ class Field(QGLWidget):
 ##		self.homingText.say('Homing.')
 		#self.beep = pyglet.resource.media('sound\beep-5.wav')
 		self.moveString = "Reference"
+		
+		# shutter glasses
+		self.shutter = buttonbox.Buttonbox() # optionally add port="COM17"
+		self.openShutter(True, True)
 						
 		# experimental conditions
 		self.conditions = conditions.Conditions(dataKeys=['swapMoves', 'subject'])
@@ -300,10 +305,14 @@ class Field(QGLWidget):
 			return
 		else:
 			self.positionClient = fpclient.FpClient()            # make a new NDI First Principles client
-			self.positionClient.connect(server)                  # connect the client to the First Principles server
+			#self.positionClient.connect(server)                  # connect the client to the First Principles server
 			self.positionClient.startStream()                    # start the synchronization stream. 
 			time.sleep(2)
 
+	def openShutter(self, left=True, right=True):
+		"""open shutter glasses"""
+		self.shutter.setLeds([left, right, True, True, True, True, True, True])
+		print([left, right, True, True, True, True, True, True])
 
 	def initializeObjects(self, moveString="Reference"):
 		# set uniform variables and set up VBO's for the attribute values
@@ -315,6 +324,13 @@ class Field(QGLWidget):
 		self.nNMD = self.conditions.getNumber('nNMD'+moveString)
 		self.nNMND = self.conditions.getNumber('nNMND'+moveString)
 		
+		if self.nMND+self.nNMND > 0:
+			# there are non-disparity objects: close right eyes
+			self.openShutter(True, False)
+		else:
+			# there are no non-disparity objects: open both eyes eyes
+			self.openShutter(True, True)
+
 		nPast = 0
 		n = self.nMD
 		#position = np.random.rand(n, 3) * \
