@@ -33,7 +33,7 @@ class HideStdout(object):
 class QTriggerJoystick(QObject):
 	up   = pyqtSignal()
 	down = pyqtSignal()
-	def __init__(self, parent, thresshold=0.1):
+	def __init__(self, parent=None, thresshold=0.1):
 		super(QObject, self).__init__(parent)
 		self.thresshold = thresshold
 		pygame.init()
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 	w.show()
 	
 	# joystick example code
-	j = QTriggerJoystick(w)
+	j = QTriggerJoystick()
 	j.up.connect(printUp)
 	j.down.connect(printDown)
 	
