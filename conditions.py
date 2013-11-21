@@ -42,7 +42,8 @@ class Conditions():
 		#default trial variables
 		self.trial = None
 		self.iTrial = 0       # index of current trial, must not be larger than self.nTrial
-		self.nTrial = 0       # total number of trial
+		self.nTrial = 0       # total number of trials (in all blocks)
+		self.nBlock = 1       # number of blocks
 		self.saveFile = None  # file to save data to
 		self.dataKeys = dataKeys
 		self.trial = {}
@@ -55,6 +56,15 @@ class Conditions():
 		if self.saveFile:
 			self.saveFile.close()
 
+	def __repr__(self):
+		s = ""
+		iCondition = 0
+		for condition in self.conditions:
+			s += "condition {:d}: \n".format(iCondition)
+			for key in condition.keys():
+				s += "  {:16s}: {}\n".format(key, condition[key])
+			iCondition += 1
+		return s
 		
 	def printTrial(self):
 		for key in self.trial.keys():
@@ -112,6 +122,13 @@ class Conditions():
 
 				# parse row into condition
 				condition = {}
+				condition['iBlock'] = self.nBlock - 1
+				
+				if len(row)==0: # empty line, new block
+					logging.debug("block {} starts at row {}".format(self.nBlock, reader.line_num))
+					self.nBlock += 1
+					continue
+				
 				for i in range(len(row)):
 					#print ("i: {}".format(i))
 					value = row[i]
@@ -151,7 +168,7 @@ class Conditions():
 						#logging.debug("string: {}".format(value))
 						condition[self.keys[i]] = value
 					else:
-						logging.error("ERROR: could not parse value '{}' in row {}, column{}".format(value, reader.line_num, i))
+						logging.error("ERROR: could not parse value '{}' in row {}, column {}".format(value, reader.line_num, i))
 			
 				if 'nTrial' not in condition:
 					condition['nTrial'] = 1
@@ -182,7 +199,7 @@ class Conditions():
 	def next(self):
 		"""return current trial en proceed to next. Implementation of iterator/iterable"""
 		if self.iTrial==self.nTrial-1:
-			self.iTrial += 1
+			self.iTrial += 1 # allow check while iTrial<nTrial
 			raise StopIteration
 		elif not hasattr(self, '_notFirstTime'):
 			# first trial was expanded in initialization, do not do that again
@@ -196,21 +213,45 @@ class Conditions():
 		"""increment the condition pointer and expand it into a trial. """
 		if data!=None:
 			self.addData(data)
-					
+			
 		if self.iTrial < self.nTrial:
 			self.iTrial += 1
 		if self.iTrial == self.nTrial:
+			print("####################HALT######################")
 			return
 		self.conditions[self.iCondition]['iTrial'] += 1
 		
-		# find the condition which was used the least relatively
-		while self.conditions[self.iCondition]['iTrial'] > self.conditions[self.iCondition]['nTrial'] * self.iTrial/self.nTrial:
-			self.iCondition = (self.iCondition + 1) % len(self.conditions)
-		self.makeTrial()
+		# go to next condition if iTrial/nTrial for this condition is larger than average
+		#while self.conditions[self.iCondition]['iTrial'] > self.conditions[self.iCondition]['nTrial'] * self.iTrial/self.nTrial:
+			#self.iCondition = (self.iCondition + 1) % len(self.conditions)
+			
+		# go to next block if the number of trials in the block has been reached
+		# go to next condition in block if iTrial/nTrial for this condition is larger than average in block
+		iBlock = self.conditions[self.iCondition]['iBlock']
+		while True:
+			iTrialBlock = 0 # number of trials finished in current block
+			nTrialBlock = 0 # total number of trials in current block
+			for c in self.conditions:
+				if c['iBlock'] == iBlock:
+					iTrialBlock += c['iTrial']
+					nTrialBlock += c['nTrial']
+			if iTrialBlock == nTrialBlock:
+				iBlock += 1
+			else:
+				break
+
+		logging.debug("current block: {}, i/n Condition: {}/{}, i/n Block: {}/{}, i/n Total: {}/{}".
+			format(iBlock, self.conditions[self.iCondition]['iTrial'], self.conditions[self.iCondition]['nTrial'], iTrialBlock, nTrialBlock, self.iTrial, self.nTrial))
+		while self.conditions[self.iCondition]['iTrial'] > self.conditions[self.iCondition]['nTrial'] * iTrialBlock/nTrialBlock:
+			while True: # increase to next condition in same block (may loop)
+				self.iCondition = (self.iCondition + 1) % len(self.conditions)
+				if self.conditions[self.iCondition]['iBlock'] == iBlock: 
+					break
+
+		self.makeTrial() # expand this condition to a trial
 		
 	def makeTrial(self):
 		"""turn current condition into a trial """
-			
 		self.trial = self.conditions[self.iCondition]
 		extra = ""
 		if 'functionKey' in self.trial:
@@ -267,11 +308,15 @@ if __name__ == '__main__':
 	else:
 		conditions.load("experiment/two.csv")
 		
+	print ("######conditions after load: \n{}".format(conditions))
+
 	while conditions.iTrial < conditions.nTrial:
-		x = conditions.trial['x']
-		if test(x) < 0:
-			print("x: {} ↑".format(x))
+		print("{}/{}".format(conditions.iTrial, conditions.nTrial))
+		d = conditions.trial['dTrial']
+		dReference = conditions.trial['dReference']
+		if d > dReference:
+			print("x: {} ↑".format(d))
 		else:
-			print("x: {} ↓".format(x))
-		conditions.nextTrial(test(x) > 0)
+			print("x: {} ↓".format(d))
+		conditions.nextTrial(d > dReference)
 		time.sleep(1)

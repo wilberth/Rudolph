@@ -225,12 +225,12 @@ class Field(QGLWidget):
 		if self.state=="wait":
 			self.conditions.trial['subject'] = self.subject # not very useful to store for each trial, but it has to go somewere
 			logging.info("received while waiting: {}".format(data))
+			if self.swapMoves:
+				self.conditions.trial['swapMoves'] = True
+				data = not data
+			else:
+				self.conditions.trial['swapMoves'] = False
 			if self.conditions.iTrial < self.conditions.nTrial-1:
-				if self.swapMoves:
-					self.conditions.trial['swapMoves'] = True
-					data = not data
-				else:
-					self.conditions.trial['swapMoves'] = False
 				self.conditions.nextTrial(data = data)
 			else:
 				# last data
