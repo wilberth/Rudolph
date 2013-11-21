@@ -1,4 +1,4 @@
-#!/usr/bin/python -B
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 '''
 Copyright © 2013, W. van Ham, Radboud University Nijmegen
@@ -34,7 +34,7 @@ class Move(object):
 		self.x0 = x0
 		self.t1 = t1
 		self.x1 = x1
-		sys.stderr.write(self.__repr__()+"\n")
+		#sys.stderr.write(self.__repr__()+"\n")
 		self.v0Norm = v0 / ( (self.x1-self.x0)/(self.t1-self.t0) )
 		self.a0Norm = a0 / ( (self.x1-self.x0)/(self.t1-self.t0)**2 )
 	def __repr__(self):

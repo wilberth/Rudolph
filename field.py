@@ -272,7 +272,6 @@ class Field(QGLWidget):
 		self.pViewer[1] = 0
 		if y != None:
 			self.pViewer[1] = y
-		
 		self.update()
 	
 	
@@ -541,37 +540,37 @@ class Field(QGLWidget):
 		self.nFramePerSecond += 1
 		
 		
-		# set uniform variables
-		if self.nFrameLocation != -1:
-			glUniform1i(self.nFrameLocation, self.nFrame)
-		if self.fadeFactorLocation != -1:
-			glUniform1f(self.fadeFactorLocation, self.fadeFactor)
-			if self.state=="fadeIn" and self.fadeFactor < 0.999:
-				self.fadeFactor=min(1.0, self.fadeFactor + 0.1)
-			elif self.state=="responseBeep" and self.fadeFactor > 0.001:
-				self.fadeFactor=max(0.0, self.fadeFactor - 0.1)
-		
 		if hasattr(self, "positionClient"): # only false if mouse is used
 			mode = self.conditions.getString('mode'+self.moveString)
-			if mode=='combined':
+			if mode=='visual':
+				pp = self.sledClientSimulator.getPosition()
+				p = np.array(pp).ravel().tolist()
+				self.viewerMove(2*p[0], 2*p[1])
+			elif mode=='combined' or mode=='vestibular':
 				pp = self.positionClient.getPosition(self.positionClient.time()+5./60)          # get marker positions
 				p = np.array(pp).ravel().tolist()       # python has too many types
 				x = 2*p[0]
 				if self.moveString=="Trial":
 					x *= (self.conditions.getNumber("dTrial")+self.conditions.getNumber("dVisualDelta"))/self.conditions.getNumber("dTrial")
 				self.viewerMove(x, 2*p[1])         # use x- and y-coordinate of first marker
-			elif mode=='visual':
-				pp = self.sledClientSimulator.getPosition()
-				p = np.array(pp).ravel().tolist()
-				self.viewerMove(2*p[0], 2*p[1])
-			elif mode=='vestibular':
-				self.viewerMove(self.h)         # use x- and y-coordinate of first marker
 			else:
 				logging.error("mode not recognized: "+mode)
 				
+		## set uniform variables
+		if self.nFrameLocation != -1:
+			glUniform1i(self.nFrameLocation, self.nFrame)
+		if self.fadeFactorLocation != -1:
+			if self.state=="fadeIn" and self.fadeFactor < 0.999:
+				self.fadeFactor=min(1.0, self.fadeFactor + 0.1)
+			elif self.state=="responseBeep" and self.fadeFactor > 0.001:
+				self.fadeFactor=max(0.0, self.fadeFactor - 0.1)
+			if mode=='vestibular':
+				glUniform1f(self.fadeFactorLocation, 0.0)  # no stars, no fixation
+			else:
+				glUniform1f(self.fadeFactorLocation, self.fadeFactor)
+		else:
+			logging.error("Could not set fadeFactor, vestibular condition unavailable")
 
-
-		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		for eye in self.views:
 			## setup view, change the next 5 lines for different type of stereo view
@@ -617,7 +616,7 @@ class Field(QGLWidget):
 			if mode!='visual':
 				glUniform1f(self.moveFactorLocation, 0.0)
 			else:
-				glUniform1f(self.moveFactorLocation, -1.0)
+				glUniform1f(self.moveFactorLocation, -1.0) # countermove of fixation cross
 			
 			# draw reference triangles in one color
 			glUniform3fv(self.colorLocation, 1, intensityLevel*self.conditions.getColor('cMD'))
