@@ -12,7 +12,6 @@ class HideStdout(object):
 	with HideStdout():
 		os.system('ls -l')
 	'''
-
 	def __init__(self, *args, **kw):
 		sys.stdout.flush()
 		self._origstdout = sys.stdout
@@ -33,33 +32,44 @@ class HideStdout(object):
 class QTriggerJoystick(QObject):
 	up   = pyqtSignal()
 	down = pyqtSignal()
-	def __init__(self, parent=None, thresshold=0.1):
+	def __init__(self, parent=None, threshold=0.1, delay=100):
 		super(QObject, self).__init__(parent)
-		self.thresshold = thresshold
+		self.threshold = threshold
+		self.delay = delay
 		pygame.init()
 		pygame.joystick.init()
 		if pygame.joystick.get_count():
 			self.j = pygame.joystick.Joystick(0)
 			self.j.init()
-			
 			logging.info("QTriggerJoystick: {}".format(self.j.get_name()))
-			if self.j.get_numaxes():
-				self.val = 0
-				self.startTimer(100)
-			else:
-				logging.error("QTriggerJoystick: Joystick has no axis.")
 		else:
 			logging.error("QTriggerJoystick: No joystick connected")
+		self.setEnabled()
+			
+	def setEnabled(self, value=True):
+		logging.debug("QTriggerJoystick.setEnabled({})".format(value))
+		if value:
+			if self.j.get_numaxes():
+				self.timerId = self.startTimer(self.delay)
+			else:
+				logging.error("QTriggerJoystick: Joystick has no axis.")
+		elif hasattr(self, 'timerId'):
+			self.killTimer(self.timerId)
+			del self.timerId
+		else:
+			logging.error("Disabling non-enabled timer")
 
 	def timerEvent(self, event):
 		if not self.j.get_init():
 			return
+		t = time.time()
 		keys = pygame.event.get()
 		with HideStdout():
 			val =  self.j.get_axis(0)
-		if val > self.thresshold and self.val <= self.thresshold:
+		assert(time.time()-t < 0.001) # joystick is slow
+		if val > self.threshold and self.val <= self.threshold:
 			self.up.emit()
-		elif val < -self.thresshold and self.val >= -self.thresshold:
+		elif val < -self.threshold and self.val >= -self.threshold:
 			self.down.emit()
 		self.val = val
 		
@@ -82,6 +92,7 @@ if __name__ == '__main__':
 	j = QTriggerJoystick()
 	j.up.connect(printUp)
 	j.down.connect(printDown)
-	
+	QTimer.singleShot(5000, lambda: j.setEnabled(False))
+	QTimer.singleShot(10000, lambda: j.setEnabled(True))
 	# main loop
 	sys.exit(a.exec_())  # enter main loop (the underscore prevents using the keyword)
