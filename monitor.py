@@ -134,6 +134,7 @@ def readFile(fileName):
 			del(head[-1])
 		nColumn = len(head)
 		
+		# determine column that contains iCconditions
 		conditionColumn = -1
 		for i in range(len(head)):
 			if head[i] == 'iCondition':
@@ -141,6 +142,12 @@ def readFile(fileName):
 				break
 		if conditionColumn==-1:
 			print("ERROR: no iCondition column")
+
+		# determine column that contains x (stimulus value)
+		xColumn = nColumn-4
+		
+		# determine column that contains y (response value)
+		yColumn = -2
 		
 		#print("nColumn: {}".format(nColumn))
 		#print("head: {}".format(head))
@@ -154,8 +161,8 @@ def readFile(fileName):
 				x[condition] = []
 				y[condition] = []
 				conditions.append(condition)
-			x[condition].append(float(row[nColumn-1]))
-			y[condition].append(row[nColumn]=='True')
+			x[condition].append(float(row[xColumn]))
+			y[condition].append(row[yColumn]=='True')
 		return tuple([x, y, conditions])
 
 
