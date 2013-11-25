@@ -122,14 +122,18 @@ def lastFile(directory=''):
 	fileName = "{}/{}".format(directory, dataFiles[-1])
 	return fileName
 
+def nextLine(reader):
+	return [d.lstrip(' \t#') for d in reader.next()]
+
 def readFile(fileName):
 	x = {}
 	y = {}
 	conditions = []
 	with open(fileName, 'r') as f:
 		reader = csv.reader(f, delimiter=";", skipinitialspace=True)
+		
 		# column headers
-		head = [d.lstrip(' \t#') for d in reader.next()]
+		head = nextLine(reader)
 		while head[-1] == '':
 			del(head[-1])
 		nColumn = len(head)
@@ -151,11 +155,16 @@ def readFile(fileName):
 		
 		#print("nColumn: {}".format(nColumn))
 		#print("head: {}".format(head))
+		
 		# burn experiment file header
-		while len(head) and len(head)!=1:
-			head = reader.next()
+		while True:
+			#print("test header line: {:5d}: {}".format(len(head[0]), head))
+			if len(head) < 1 or head[0][0:19]=="START OF TRIALDATA":
+				break
+			head = nextLine(reader)
+
 		for row in reader:
-			row = [d.lstrip() for d in row]
+			row = nextLine(reader)
 			condition = row[conditionColumn]
 			if not x.get(condition):
 				x[condition] = []
