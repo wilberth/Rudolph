@@ -20,7 +20,7 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 import sys, math, time, numpy as np, random, serial, ctypes, re
-import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions
+import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions#, qtriggerjoystick
 from rusocsci import buttonbox
 
 #PyQt
@@ -106,7 +106,7 @@ class Field(QGLWidget):
 		# shutter glasses
 		try:
 			self.shutter = buttonbox.Buttonbox() # optionally add port="COM17"
-			self.openShutter(True, True)
+			self.openShutter(False, False)
 		except Exception as e:
 			print(e)
 						
@@ -146,7 +146,9 @@ class Field(QGLWidget):
 			self.state = "sleep"
 			self.requestSleep = False
 			self.parent().toggleText(True)
+			self.sledClient.sendCommand("Lights On")
 		elif self.state=="sleep" or self.state=="home":
+			self.sledClient.sendCommand("Lights Off")
 			self.state = "fadeIn"
 			self.swapMoves = np.random.uniform()>0.5
 			if self.swapMoves:
@@ -183,9 +185,9 @@ class Field(QGLWidget):
 			d = self.conditions.trial["d"+self.moveString]
 			ddVes=0 # vestibular reference + trial move
 			if self.conditions.trial["modeReference"] != 'visual':
-                                ddVes +=self.conditions.trial['dReference']
+				ddVes +=self.conditions.trial['dReference']
 			if self.conditions.trial["modeTrial"] != 'visual':
-                                ddVes +=self.conditions.trial['dTrial']
+				ddVes +=self.conditions.trial['dTrial']
 			ddAll = self.conditions.trial['dReference']+self.conditions.trial['dTrial']
 			dt = self.sledClientSimulator.goto(self.h+ddAll, self.tMovement)
 			#if self.conditions.trial["mode"+self.moveString] != "visual":
@@ -202,9 +204,11 @@ class Field(QGLWidget):
 			self.state="wait"
 			self.parent().downAction.setEnabled(True)
 			self.parent().upAction.setEnabled(True)
+			#self.parent().j.setEnabled(True)
 		elif self.state=="wait":
 			self.state = "fadeOut"
 			logging.info("state: fadeOut")
+			#self.parent().j.setEnabled(False)
 			QTimer.singleShot(500, self.changeState)
 		elif self.state=="fadeOut":
 			self.state = "home"
@@ -231,7 +235,8 @@ class Field(QGLWidget):
 			else:
 				self.conditions.trial['swapMoves'] = False
 			if self.conditions.iTrial < self.conditions.nTrial-1:
-				self.conditions.nextTrial(data = data)
+				if self.conditions.nextTrial(data = data):
+					self.parent().startStop()
 			else:
 				# last data
 				self.conditions.addData(data)
@@ -311,10 +316,10 @@ class Field(QGLWidget):
 			self.positionClient.startStream()                    # start the synchronization stream. 
 			time.sleep(2)
 
-	def openShutter(self, left=True, right=True):
+	def openShutter(self, left=False, right=False):
 		"""open shutter glasses"""
 		try:
-			self.shutter.setLeds([left, right, True, True, True, True, True, True])
+			self.shutter.setLeds([left, right, False, False, False, False, False, False])
 		except:
 			pass
 
@@ -329,11 +334,14 @@ class Field(QGLWidget):
 		self.nNMND = self.conditions.getNumber('nNMND'+moveString)
 		
 		if self.nMND+self.nNMND > 0:
-			# there are non-disparity objects: close right eyes
-			self.openShutter(True, False)
-		else:
-			# there are no non-disparity objects: open both eyes eyes
+			# there are non-disparity objects: close right shutter
+			self.openShutter(False, True)
+		elif self.conditions.getString("mode"+self.moveString) == 'vestibular':
+			# Mode is vestibular only: close both shutters
 			self.openShutter(True, True)
+		else:
+			# there are no non-disparity objects: open both shutters
+			self.openShutter(False, False)
 
 		nPast = 0
 		n = self.nMD
@@ -452,7 +460,7 @@ class Field(QGLWidget):
 		disparityFactor = np.array(1.0, dtype='float32')
 		size = np.array(0.02, dtype='float32')
 		lifetime = np.array(0, dtype='uint32'); lifetime.dtype='float32'
-                        
+
 		fixationCrossVertices = np.hstack([
 			position, 
 			randSeed,
