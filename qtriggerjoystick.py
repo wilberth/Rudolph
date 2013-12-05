@@ -42,9 +42,9 @@ class QTriggerJoystick(QObject):
 			self.j = pygame.joystick.Joystick(0)
 			self.j.init()
 			logging.info("QTriggerJoystick: {}".format(self.j.get_name()))
+			self.setEnabled()
 		else:
 			logging.error("QTriggerJoystick: No joystick connected")
-		self.setEnabled()
 			
 	def setEnabled(self, value=True):
 		logging.debug("QTriggerJoystick.setEnabled({})".format(value))
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 	j = QTriggerJoystick()
 	j.up.connect(printUp)
 	j.down.connect(printDown)
-	QTimer.singleShot(5000, lambda: j.setEnabled(False))
-	QTimer.singleShot(10000, lambda: j.setEnabled(True))
+	#QTimer.singleShot(5000, lambda: j.setEnabled(False))
+	#QTimer.singleShot(10000, lambda: j.setEnabled(True))
 	# main loop
 	sys.exit(a.exec_())  # enter main loop (the underscore prevents using the keyword)
