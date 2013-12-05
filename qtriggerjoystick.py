@@ -28,6 +28,7 @@ class HideStdout(object):
 		sys.stdout = self._origstdout
 		sys.stdout.flush()
 		os.dup2(self._oldstdout_fno, 1)
+		os.close(self._oldstdout_fno)
 
 class QTriggerJoystick(QObject):
 	up   = pyqtSignal()
@@ -92,7 +93,5 @@ if __name__ == '__main__':
 	j = QTriggerJoystick()
 	j.up.connect(printUp)
 	j.down.connect(printDown)
-	#QTimer.singleShot(5000, lambda: j.setEnabled(False))
-	#QTimer.singleShot(10000, lambda: j.setEnabled(True))
 	# main loop
 	sys.exit(a.exec_())  # enter main loop (the underscore prevents using the keyword)

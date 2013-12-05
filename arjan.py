@@ -30,6 +30,7 @@ from PyQt4.QtOpenGL import *
 # project files
 from field import *
 import utils
+import qtriggerjoystick
 
 
 class Main(QMainWindow):
@@ -46,6 +47,8 @@ class Main(QMainWindow):
 		qApp.quit()
 
 	def initUI(self):
+		self.j = qtriggerjoystick.QTriggerJoystick()
+
 		#contents
 		self.field = Field(self)
 		# alternative content
