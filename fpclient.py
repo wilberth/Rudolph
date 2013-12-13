@@ -6,7 +6,7 @@ from collections import deque
 def exitHandler():
 	print("exit")
 
-class FpClient:
+class FpClient(object):
 	"Client for NDI First Principles"
 	# package and component types
 	pTypes = ['Error', 'Command', 'XML', 'Data', 'Nodata', 'C3D']
