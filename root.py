@@ -78,6 +78,61 @@ class Step():
 		elif self.iValue < self.nValue-1:
 			self.iValue += 1
 			
+class Interval(object):
+	"""n fixed interval values from min to max"""
+	def __init__(self, min=0, max=1, nx=11):
+		self.x = np.linspace(min, max, nx)
+		self.i = 0
+		
+	def __call__(self):
+		return self.x[self.i]
+		
+	def addData(self, response):
+		self.i = (self.i+1)%len(self.x)
+		pass
+	
+class IntervalShuffle(Interval):
+	"""n fixed interval values from min to max in random order"""
+	def __init__(self, min=0, max=1, nx=11):
+		super(IntervalShuffle, self).__init__(min, max, nx)
+		self._shuffle()
+		
+	def addData(self, response):
+		super(IntervalShuffle, self).addData(False)
+		if self.i==0:
+			self._shuffle()
+		
+	def _shuffle(self):
+		random.shuffle(self.x)
+	
+class StairCase(object):
+	"""never ending staircase handler"""
+	def __init__(self, startVal, stepSize=4, nTrials=0, nUp=1, nDown=3, min=None, max=None):
+		self.nTrue = 0; self.nFalse = 0; self.data = []
+		self.val = startVal
+		if type(stepSizes) in [int, float]: 
+			self.stepSize=[stepSize]
+		else: #list, tuple or array
+			self.stepSize = stepSize
+	def addData(self, response):
+		self.data.append(response)
+		if response:
+			if len(self.data)>1 and self.data[-2]==response: 
+ 				self.nTrue += 1 
+			else: 
+				self.nTrue = 1 
+		else: 
+			if len(self.data)>1 and self.data[-2]==response: 
+ 				self.nTrue -= 1 
+			else: 
+				self.nTrue = -1 
+		
+	def calcNextStim(self):
+		pass
+	
+	
+		
+		
 from scipy.stats import norm
 class Psi:
 	"""Implements Kontsevich adaptive estimation of psychometric slope and threshold. """
@@ -248,15 +303,15 @@ if __name__ == '__main__':
 	print("using: {}".format(minimizer))
 	
 	# loop
-	for i in range(10):
+	for i in range(20):
 		t = time.time()
 		x = minimizer()
 		dt = time.time()-t
 		if test(x) < 0:
 			print("x: {} ↑".format(minimizer()))
-			minimizer.up()
+			minimizer.addData(False)
 		else:
 			print("x: {} ↓".format(minimizer()))
-			minimizer.down()
+			minimizer.addData(True)
 		print ("  get: {:6.3f} ms, set: {:6.3f} ms".format(1000*dt, 1000*(time.time()-t-dt)))
 		time.sleep(1) # without this sleep "x = minimizer()" (get) will be slow
