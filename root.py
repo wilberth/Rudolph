@@ -105,9 +105,9 @@ class IntervalShuffle(Interval):
 	def _shuffle(self):
 		random.shuffle(self.x)
 	
-class StairCase(object):
+class Staircase(object):
 	"""never ending staircase handler"""
-	def __init__(self, startVal, stepSizes=1.0, nUp=1, nDown=1, minVal=None, maxVal=None):
+	def __init__(self, startVal, stepSizes=1.0, nUp=1, nDown=1, minVal=float("-inf"), maxVal=float("inf")):
 		"""
 		:Parameters:
 
@@ -140,6 +140,7 @@ class StairCase(object):
 		self.iDown = 0; self.iUp = 0
 		self.nUp = nUp; self.nDown = nDown
 		self.iStep = 0 # index of next step
+		self.minVal = minVal; self.maxVal = maxVal
 
 		if type(stepSizes) in [int, float]: 
 			self.step = [stepSizes]
@@ -147,6 +148,7 @@ class StairCase(object):
 			self.step = stepSizes
 			
 	def __call__(self):
+		return max(self.minVal, min(self.val, self.maxVal))
 		return self.val
 			
 	def addData(self, response):
@@ -174,6 +176,8 @@ class StairCase(object):
 					self.lastReversal = 1
 					if self.nReversal%2 == 0 and self.iStep < len(self.step)-1 and self.nReversal != 0:
 						self.iStep += 1
+						
+		self.val = max(self.minVal, min(self.val, self.maxVal))
 		
 	def next(self):
 		return self.__call__()
