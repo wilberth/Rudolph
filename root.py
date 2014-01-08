@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-Copyright © 2013, W. van Ham, Radboud University Nijmegen
+Copyright © 2013-2014, W. van Ham, Radboud University Nijmegen
 Copyright © 2013, I. Clemens, Radboud University Nijmegen,for the Kontsevich class
 This file is part of Sleelab.
 
@@ -31,7 +31,7 @@ If the stimulus value is considered beyond the tresshold by the testee,
 call addData(True). If it is considered not beyond the tresshold, call addData(False).
 """
 
-class Bisect():
+class Bisect(object):
 	"""root finding functor, determine what x-value to probe next"""
 	def __init__(self, min, max):
 		self.min = min
@@ -50,7 +50,7 @@ class Bisect():
 			self.x = 0.5*(self.min+self.max)
 
 		
-class Random():
+class Random(object):
 	"""Return random values betwen min and max."""
 	def __init__(self, min, max):
 		self.min = min
@@ -62,7 +62,7 @@ class Random():
 	def addData(self, m):
 		pass
 
-class Step():
+class Step(object):
 	"""non converging root finding functor"""
 	nValue=10
 	def __init__(self, min, max):
@@ -107,29 +107,78 @@ class IntervalShuffle(Interval):
 	
 class StairCase(object):
 	"""never ending staircase handler"""
-	def __init__(self, startVal, stepSize=4, nTrials=0, nUp=1, nDown=3, min=None, max=None):
-		self.nTrue = 0; self.nFalse = 0; self.data = []
+	def __init__(self, startVal, stepSizes=1.0, nUp=1, nDown=1, minVal=None, maxVal=None):
+		"""
+		:Parameters:
+
+			startVal:
+				The initial value for the staircase.
+
+			stepSizes:
+				The size of steps as a single value or a list (or array). For a single value the step
+				size is fixed. For an array or list the step size will progress to the next entry
+				at each reversal.
+
+			nUp:
+				The number of consecutive 'incorrect' (or 0) responses before the staircase level increases.
+
+			nDown:
+				The number of consecutive 'correct' (or 1) responses before the staircase level decreases.
+
+			minVal: *None*, or a number
+				The smallest legal value for the staircase, which can be used to prevent it
+				reaching impossible contrast values, for instance.
+
+			maxVal: *None*, or a number
+				The largest legal value for the staircase, which can be used to prevent it
+				reaching impossible contrast values, for instance.
+
+		"""
 		self.val = startVal
+		self.lastReversal = 0 # -1 for down, +1 for up
+		self.nReversal = 0
+		self.iDown = 0; self.iUp = 0
+		self.nUp = nUp; self.nDown = nDown
+		self.iStep = 0 # index of next step
+
 		if type(stepSizes) in [int, float]: 
-			self.stepSize=[stepSize]
-		else: #list, tuple or array
-			self.stepSize = stepSize
+			self.step = [stepSizes]
+		else:
+			self.step = stepSizes
+			
+	def __call__(self):
+		return self.val
+			
 	def addData(self, response):
-		self.data.append(response)
+		#print("r: {}, iUp: {}/{}, iDown: {}/{}, nReverse: {}".
+			#format(response, self.iUp, self.nUp, self.iDown, self.nDown, self.nReversal))
 		if response:
-			if len(self.data)>1 and self.data[-2]==response: 
- 				self.nTrue += 1 
-			else: 
-				self.nTrue = 1 
+			self.iDown += 1
+			self.iUp = 0
+			if self.iDown == self.nDown or self.nReversal<2:
+				self.iDown = 0
+				self.val -= self.step[self.iStep]
+				if self.lastReversal != -1:
+					self.nReversal += 1
+					self.lastReversal = -1
+					if self.nReversal%2 == 0 and self.iStep < len(self.step)-1 and self.nReversal != 0:
+						self.iStep += 1
 		else: 
-			if len(self.data)>1 and self.data[-2]==response: 
- 				self.nTrue -= 1 
-			else: 
-				self.nTrue = -1 
+			self.iUp += 1
+			self.iDown = 0
+			if self.iUp == self.nUp or self.nReversal<2:
+				self.iUp = 0
+				self.val += self.step[self.iStep]
+				if self.lastReversal != 1:
+					self.nReversal += 1
+					self.lastReversal = 1
+					if self.nReversal%2 == 0 and self.iStep < len(self.step)-1 and self.nReversal != 0:
+						self.iStep += 1
 		
-	def calcNextStim(self):
-		pass
-	
+	def next(self):
+		return self.__call__()
+	def iter(self):
+		return self
 	
 		
 		
@@ -314,4 +363,4 @@ if __name__ == '__main__':
 			print("x: {} ↓".format(minimizer()))
 			minimizer.addData(True)
 		print ("  get: {:6.3f} ms, set: {:6.3f} ms".format(1000*dt, 1000*(time.time()-t-dt)))
-		time.sleep(1) # without this sleep "x = minimizer()" (get) will be slow
+		#time.sleep(1) # without this sleep "x = minimizer()" (get) will be slow
