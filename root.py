@@ -107,7 +107,7 @@ class IntervalShuffle(Interval):
 	
 class Staircase(object):
 	"""never ending staircase handler"""
-	def __init__(self, startVal, stepSizes=1.0, nUp=1, nDown=1, minVal=float("-inf"), maxVal=float("inf")):
+	def __init__(self, startVal, stepSizes=None, stepSizesUp=None, stepSizesDown=None, nUp=1, nDown=1, nInitMode=1, minVal=float("-inf"), maxVal=float("inf")):
 		"""
 		:Parameters:
 
@@ -141,14 +141,26 @@ class Staircase(object):
 		self.nUp = nUp; self.nDown = nDown
 		self.iStep = 0 # index of next step
 		self.minVal = minVal; self.maxVal = maxVal
+		self.nInitMode = nInitMode
 
-		if type(stepSizes) in [int, float]: 
-			self.step = [stepSizes]
+		if stepSizes != None:
+			if type(stepSizes) in [int, float]: 
+				self.stepUp = [stepSizes]
+				self.stepDown = [stepSizes]
+			else:
+				self.stepUp = stepSizes
+				self.stepDown = stepSizes
 		else:
-			self.step = stepSizes
-			
+			if type(stepSizesUp) in [int, float]: 
+				self.stepUp = [stepSizesUp]
+			else:
+				self.stepUp = stepSizesUp
+			if type(stepSizesDown) in [int, float]: 
+				self.stepDown = [stepSizesDown]
+			else:
+				self.stepDown = stepSizesDown
+		
 	def __call__(self):
-		return max(self.minVal, min(self.val, self.maxVal))
 		return self.val
 			
 	def addData(self, response):
@@ -157,24 +169,24 @@ class Staircase(object):
 		if response:
 			self.iDown += 1
 			self.iUp = 0
-			if self.iDown == self.nDown or self.nReversal<2:
+			if self.iDown == self.nDown or self.nReversal<2*self.nInitMode:
 				self.iDown = 0
-				self.val -= self.step[self.iStep]
+				self.val -= self.stepDown[min(self.iStep, len(self.stepDown)-1)]
 				if self.lastReversal != -1:
 					self.nReversal += 1
 					self.lastReversal = -1
-					if self.nReversal%2 == 0 and self.iStep < len(self.step)-1 and self.nReversal != 0:
+					if self.nReversal%2 == 0  and self.nReversal != 0:
 						self.iStep += 1
 		else: 
 			self.iUp += 1
 			self.iDown = 0
-			if self.iUp == self.nUp or self.nReversal<2:
+			if self.iUp == self.nUp or self.nReversal<2*self.nInitMode:
 				self.iUp = 0
-				self.val += self.step[self.iStep]
+				self.val += self.stepUp[min(self.iStep, len(self.stepUp)-1)]
 				if self.lastReversal != 1:
 					self.nReversal += 1
 					self.lastReversal = 1
-					if self.nReversal%2 == 0 and self.iStep < len(self.step)-1 and self.nReversal != 0:
+					if self.nReversal%2 == 0  and self.nReversal != 0:
 						self.iStep += 1
 						
 		self.val = max(self.minVal, min(self.val, self.maxVal))
