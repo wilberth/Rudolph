@@ -92,19 +92,29 @@ class Interval(object):
                 self.i = (self.i+1)%len(self.x)
                 pass
 
-class IntervalPSEInit(object): # You can only call this functor after a dataset has already been collected to estimate PSE and JND
+class IntervalPse(object):
         """n fixed interval values from min to max"""
-        def __init__(self, min=0, max=0.8, nx=11, reps=20):
-                B = psi.BootstrapInference( self.data, core='ab', sigmoid='guass', priors=( 'unconstrained', 'unconstrained', 'Uniform(0.0399,0.0401)', 'Uniform(0.0399,0.0401)'), nafc=1)
-                self.x = random.shuffle(np.linspace(B.estimate-4*B.deviance, B.estimate+4*B.deviance, nx)*reps) #Still needs min/max boundaries (+ reps-repeater) + shuffle
+        def __init__(self, min=0, max=0.8, nxInit=11, nInit=10, nxPost=20):
+                self.y = []
+                self.x = np.linspace(min, max, nx)
                 self.i = 0
+                self.nxInit = nxInit
+                self.nInit = nInit
                 
         def __call__(self):
-                return self.x[self.i]
+                if i < self.nxInit*self.nInit:
+                        return self.x[self.i%self.nxInit]
+                else:
+                        return self.x[(self.i-self.nxInit*self.nInit)%len(self.x)]
+                        
                 
         def addData(self, response):
-                self.i = (self.i+1)%len(self.x)
-                pass
+                self.y.append(response)
+                self.i += 1
+                if i==self.nxInit*self.nInit:
+                        B = psi.BootstrapInference(self.y, core='ab', sigmoid='gauss', priors=('unconstrained', 'unconstrained', 'Uniform(0.0399,0.0401)', 'Uniform(0.0399,0.0401)'), nafc=1)
+                        self.x = random.shuffle(np.linspace(B.estimate-4*B.deviance, B.estimate+4*B.deviance, nxPost))
+                        
         
 class IntervalShuffle(Interval):
         """n fixed interval values from min to max in random order"""
