@@ -78,6 +78,19 @@ class Step(object):
                         self.iValue -= 1
                 elif self.iValue < self.nValue-1:
                         self.iValue += 1
+
+class List(object):
+        """Uses set list of stimuli, given by user"""
+        def __init__(self, x):
+                self.x = x
+                self.i = 0
+                
+        def __call__(self):
+                return self.x[self.i]
+                
+        def addData(self, response):
+                self.i = (self.i+1)%len(self.x)
+
                         
 class Interval(object):
         """n fixed interval values from min to max"""
@@ -90,7 +103,7 @@ class Interval(object):
                 
         def addData(self, response):
                 self.i = (self.i+1)%len(self.x)
-                pass
+
 
 class IntervalPse(object):
         """n fixed interval values from min to max"""
