@@ -24,7 +24,11 @@ files.
 '''
 
 from __future__ import print_function
-import math, numpy as np, re, random, pypsignifit as psi
+import math, numpy as np, re, random
+try:
+	import pypsignifit as psi
+except:
+	pass
 import time, threading
 """ Psychometric root finding find the mu value of a psychometric curve.
 Use the function object call ( __call__() ) to get the current stimulus value.
