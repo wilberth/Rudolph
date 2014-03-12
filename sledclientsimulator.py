@@ -229,6 +229,9 @@ class SledClientSimulator:
 				[x,v] = s.getXV(t=t)
 				print("{:7.3f}\t{:7.3f}\t{:7.3f}".format(t, x, v))
 			ttOld = tt
+			
+	def sendCommand(self, body):
+		pass
 
 		
 if __name__ == '__main__':
