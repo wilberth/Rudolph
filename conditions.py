@@ -44,6 +44,7 @@ class Conditions():
 		self.iTrial = 0       # index of current trial, must not be larger than self.nTrial
 		self.nTrial = 0       # total number of trials (in all blocks)
 		self.nBlock = 1       # number of blocks
+		self.pauseBlocks = [] # blocks that start with a pause
 		self.saveFile = None  # file to save data to
 		self.dataKeys = dataKeys
 		self.trial = {}
@@ -124,8 +125,12 @@ class Conditions():
 				condition = {}
 				condition['iBlock'] = self.nBlock - 1
 				
+				if len(row)==1 and row[0] == 'pause': # pause line, new block
+					self.pauseBlocks.append(self.nBlock)
+					self.nBlock += 1
+					continue
+				
 				if len(row)==0: # empty line, new block
-					logging.debug("block {} starts at row {}".format(self.nBlock, reader.line_num))
 					self.nBlock += 1
 					continue
 				
@@ -211,6 +216,7 @@ class Conditions():
 		
 	def nextTrial(self, data=None):
 		"""increment the condition pointer and expand it into a trial. """
+		pauseRequest = False
 		if data!=None:
 			self.addData(data)
 			
@@ -226,7 +232,6 @@ class Conditions():
 			#self.iCondition = (self.iCondition + 1) % len(self.conditions)
 			
 		# go to next block if the number of trials in the block has been reached
-		# go to next condition in block if iTrial/nTrial for this condition is larger than average in block
 		iBlock = self.conditions[self.iCondition]['iBlock']
 		while True:
 			iTrialBlock = 0 # number of trials finished in current block
@@ -237,21 +242,25 @@ class Conditions():
 					nTrialBlock += c['nTrial']
 			if iTrialBlock == nTrialBlock:
 				iBlock += 1
+				if iBlock in self.pauseBlocks:
+					pauseRequest = True
 			else:
 				break
 
 		logging.debug("current block: {}, i/n Condition: {}/{}, i/n Block: {}/{}, i/n Total: {}/{}".
 			format(iBlock, self.conditions[self.iCondition]['iTrial'], self.conditions[self.iCondition]['nTrial'], iTrialBlock, nTrialBlock, self.iTrial, self.nTrial))
+		# go to next condition in block if iTrial/nTrial for this condition is larger than average in block
 		while self.conditions[self.iCondition]['iTrial'] > self.conditions[self.iCondition]['nTrial'] * iTrialBlock/nTrialBlock:
 			while True: # increase to next condition in same block (may loop)
 				self.iCondition = (self.iCondition + 1) % len(self.conditions)
 				if self.conditions[self.iCondition]['iBlock'] == iBlock: 
 					break
 
-		self.makeTrial() # expand this condition to a trial
+		self.makeTrial() # expand this condition into a trial
+		return pauseRequest
 		
 	def makeTrial(self):
-		"""turn current condition into a trial """
+		"""expand current condition into a trial """
 		self.trial = self.conditions[self.iCondition]
 		extra = ""
 		if 'functionKey' in self.trial:
