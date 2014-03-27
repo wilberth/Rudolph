@@ -77,7 +77,7 @@ class Main(QMainWindow):
 			self.showFullScreen()
 			self.menuBar().setVisible(False)
 			self.statusBar().setVisible(False)
-			self.setCursor(QCursor(Qt.BlankCursor))
+			#self.setCursor(QCursor(Qt.BlankCursor))
 
 def main(): 
 	# make application and main window
@@ -88,5 +88,6 @@ def main():
 	sys.exit(a.exec_())  # enter main loop (the underscore prevents using the keyword)
 
 if __name__ == '__main__':
+	logging.basicConfig(level=logging.DEBUG)
 	main()   
 

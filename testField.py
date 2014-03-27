@@ -20,7 +20,7 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 import sys, math, time, numpy as np, random, serial, ctypes, re
-import transforms, shader
+import shader
 
 #PyQt
 from PyQt4.QtCore import *
@@ -60,11 +60,9 @@ class Field(QGLWidget):
 	zNear   = 0.5*pViewer[2]                # m  viewable point nearest to viewer
 	zFocal  = 0                             # m, position of physical screen, better not change this
 	zFar    = -0.5*pViewer[2]               # m, viewable point furthest from viewer
-	dEyes   = 0.063                         # m, distance between the eyes
-	dScreen = np.array([2.728, 1.02])       # m, size of the screen
-	halfWidthAtNearPlane = .5*dScreen[0] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
-	halfHeightAtNearPlane = .5*dScreen[1] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
-	lifetime = 60
+	#dScreen = np.array([2.728, 1.02])       # m, size of the screen
+	dScreen = np.array([0.475, 0.296])       # m, size of the screen
+	lifetime = 0
 	
 	
 	
@@ -106,8 +104,8 @@ class Field(QGLWidget):
 		# reference triangles, do not move in model coordinates
 		# position of the center
 		
-		self.nMD  = 1000
-		self.nMND = 1000
+		self.nMD  = 10000
+		self.nMND = 0
 		self.nNMD = 0
 		self.nNMND = 0
 		
@@ -116,15 +114,18 @@ class Field(QGLWidget):
 		#position = np.random.rand(n, 3) * \
 		#	[2*self.dScreen[0], 2*self.dScreen[1], self.zNear-self.zFar] - \
 		#	[2*self.dScreen[0]/2, 2*self.dScreen[1]/2 , -self.zFar]
-		x = np.array(np.random.randint(-10, 10, size=(n, 1)), dtype='float32')*0.10 # 10 cm intervals
-		y = np.array(np.random.randint(-10, 10, size=(n, 1)), dtype='float32')*0.10 # 10 cm intervals
+		x = np.array(np.random.randint(-5, 6, size=(n, 1)), dtype='float32')*0.10 # 10 cm intervals
+		y = np.array(np.random.randint(-5, 6, size=(n, 1)), dtype='float32')*0.10 # 10 cm intervals
 		z = np.zeros((n, 1), dtype='float32')
 		position = np.hstack((x, y, z))
-		#randSeed = np.reshape(np.arange(1+3*nPast, 1+3*(nPast+n), dtype="uint32"), (n, 3))
 		randSeed = np.zeros((n, 3), dtype="uint32"); randSeed.dtype='float32'
+		#randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
+		#randSeed[:,1:3] = 0
+		#randSeed.dtype='float32'
+
 		disparityFactor = np.ones((n, 1), dtype='float32')
-		size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
-		#size = 0.015*np.ones((n,1), dtype='float32')
+		#size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
+		size = 0.010*np.ones((n,1), dtype='float32')
 		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
 
 		# each vertex has:
@@ -157,6 +158,7 @@ class Field(QGLWidget):
 		#randSeed = np.reshape(np.arange(1+3*nPast, 1+3*(nPast+n), dtype="uint32"), (n, 3))
 		randSeed = np.array(np.random.randint(0, 0xffff, size=(n,3)), dtype="uint32")
 		randSeed.dtype='float32'
+		
 		disparityFactor = np.zeros((position.shape[0], 1), dtype='float32')
 		size = np.array(np.random.uniform(0.01, 0.02, (n, 1)), dtype='float32')
 		lifetime = self.lifetime*np.ones((n, 1), dtype='uint32'); lifetime.dtype='float32'
@@ -291,7 +293,7 @@ class Field(QGLWidget):
 		self.initializeObjects()
 
 	def resizeGL(self, width, height):
-		logging.info("Resize: {}, {}".format(width, height))
+		print("Resize: {}, {}".format(width, height))
 		self.width = width
 		self.height = height
 		
