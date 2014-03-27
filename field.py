@@ -553,14 +553,14 @@ class Field(QGLWidget):
 			if mode=='visual':
 				pp = self.sledClientSimulator.getPosition()
 				p = np.array(pp).ravel().tolist()
-				self.viewerMove(2*p[0], 2*p[1])
+				self.viewerMove(p[0], p[1])
 			elif mode=='combined' or mode=='vestibular':
 				pp = self.positionClient.getPosition(self.positionClient.time()+5./60)          # get marker positions
 				p = np.array(pp).ravel().tolist()       # python has too many types
-				x = 2*p[0]
+				x = p[0]
 				if self.moveString=="Trial":
 					x *= (self.conditions.getNumber("dTrial")+self.conditions.getNumber("dVisualDelta"))/self.conditions.getNumber("dTrial")
-				self.viewerMove(x, 2*p[1])         # use x- and y-coordinate of first marker
+				self.viewerMove(x, p[1])         # use x- and y-coordinate of first marker
 			else:
 				logging.error("mode not recognized: "+mode)
 				

@@ -137,7 +137,7 @@ vec3 offset[3] = vec3[](
 void main(void) {
 	vec3 scale = vec3(sizeClip[0], 1.0);
 	for (int i = 0; i < 3; ++i) {
-		gl_Position = gl_in[0].gl_Position + vec4(offset[i]*scale, 1.);
+		gl_Position = gl_in[0].gl_Position + vec4(offset[i]*scale, 0.);
 		EmitVertex();
 	}
 	EndPrimitive();

@@ -1,0 +1,124 @@
+\documentclass{article}
+\usepackage{graphicx}
+\title{Arjan, software for an experiment with virtual 3D cubes and lateral chair}
+\author{Wilbert van Ham}
+\newcommand{\width}{\mathrm{width}}
+\newcommand{\height}{\mathrm{height}}
+\newcommand{\near}{\mathrm{near}}
+\newcommand{\focal}{\mathrm{focal}}
+\newcommand{\far}{\mathrm{far}}
+\begin{document}
+\maketitle
+\section{Setup}
+Image \ref{im:frustum} shows the frustum of the Sleelab setup. Note that compared to the standard 
+openGL functions there is one extra variable, the distance to focal plane \textit{focal}.
+
+\begin{figure}[hbt]
+\includegraphics[height=7cm]{frustum.pdf}
+\caption{The frustum}
+\label{im:frustum}
+\end{figure}
+Equation \ref{eq:MVP} describes the modelview-projection matrix. The size of
+the screen is $\mathrm{width}$ by $\mathrm{height}$. The $\mathrm{near}$,
+$\mathrm{focal}$ and $\mathrm{far}$ distances are from the viewer to the near clipping
+plane, focal plane (the screen) and the far clipping plane respectively. The viewer
+is at coordinates $(x, y, z)$, looking in the negative z-direction with
+the y-axis pointing up. 
+
+The way the homogeneous matrix is represented makes it suitable for left multiplication 
+with a row vector. For this matrix to be used in OpenGL, it must be stored
+row-wise (C-style). The trace has the indices $0$, $4$ and $8$. The translations in the bottom 
+row have the indices $12$, $13$ and $14$.
+
+\begin{equation}
+\mathrm{MVP}=\left(
+\begin{array}{cccc}
+ 2\focal/\width &               0 &                                                     0 &     0 \\
+              0 & 2\focal/\height &                                                     0 &     0 \\
+     -2x/\width &      -2y/\height &                         \frac{\far+\near}{\near-\far} &    -1 \\
+              0 &               0 & \frac{2\far\cdot\near-\focal(\far+\near)}{\near-\far} & \focal
+\end{array} 
+\right)
+\label{eq:MVP}
+\end{equation}
+\section{Calculation}
+This modelview-projection matrix is the multiplication of a gluLookAt from the observers position 
+$(x_o, y_o, z_o)$ to the
+origin with the y-axis pointing up (equation \ref{eq:lookat}), a glFrustum to a screen with size \textit{width}
+$\times$ \textit{height} at distance \textit{focal} with clipping planes at distances \textit{near} and
+\textit{far} (equation \ref{eq:frustum}), and a glTranslate over the normalized viewer position vector $(2x/\mathrm{width},
+2y/\mathrm{height})$ (equation \ref{eq:translate}). Note the \textit{left} multiplication! Equating $z$ to \textit{focal}
+causes the translation terms at index $12$ and $13$ to disappear. We used \textit{focal} for $z$ in the representation above.
+\begin{equation}
+\mathrm{gluLookAt}=\left(
+\begin{array}{cccc}
+  1 &  0 &  0 & 0 \\
+  0 &  1 &  0 & 0 \\
+  0 &  0 &  1 & 0 \\
+ -x_o & -y_o & -z_o & 1
+\end{array} 
+\right)
+\label{eq:lookat}
+\end{equation}
+\begin{equation}
+\mathrm{glFrustum}=\left(
+\begin{array}{cccc}
+ 2\focal/\width &               0 &                                  0 &     0 \\
+              0 & 2\focal/\height &                                  0 &     0 \\
+              0 &               0 &      \frac{\far+\near}{\near-\far} &    -1 \\
+              0 &               0 & \frac{2\far\cdot\near}{\near-\far} &     0
+\end{array} 
+\right)
+\label{eq:frustum}
+\end{equation}
+\begin{equation}
+\mathrm{glTranslate}=\left(
+\begin{array}{cccc}
+ 1 & 0 & 0 & 0 \\
+ 0 & 1 & 0 & 0 \\
+ 0 & 0 & 1 & 0 \\
+ 2x_o/\width & 2y_o/\height & 0 & 1
+\end{array} 
+\right)
+\label{eq:translate}
+\end{equation}
+
+\subsection{Maxima}
+Doing this with a symbolic algebra package is easier then by hand. We can use Maxima 
+to see if this tranform ations does what we want.
+\begin{verbatim}
+/* xo = x observer , zo = z observer which is the distance to the focal plane f */
+
+V: matrix([1,0,0,0],[0,1,0,0],[0,0,1,0],[-xo, -yo, -zo, 1]);
+P: matrix([2*focal/width,0,0,0],[0,2*focal/height,0,0],[0,0,(far+near)/(near-far),-1],[0, 0, 2*far*near/(near-far), 0]);
+B: matrix([1,0,0,0],[0,1,0,0],[0,0,1,0],[2*xo/width, 2*yo/height, 0, 1]);
+MVP : V.P.B;
+
+MVP : V.P.B, zo:focal;
+
+/* convert from homogenuous to cartesian*/
+cart(v) := matrix([v[1][1]/v[1][4],v[1][2]/v[1][4],v[1][3]/v[1][4]]);
+/* convert from homogenuous to cartesian, ignore depth */
+xy(v) := matrix([v[1][1]/v[1][4],v[1][2]/v[1][4]]);
+
+
+xy(matrix([x,0,0,1]).MVP);
+/* yields 2x/width, which is the correct position on the focal plane */
+xy(matrix([x,y,z,1]).MVP);
+/*yields
+[ 2focal x 2xo z 2focal y 2yo z ]
+[ --------- - ------  --------- - ------ ]
+[   width   width  height   height]
+[ ------------------  ------------------ ]
+[     focal - z           focal - z      ]
+which indeed describes a straight line from p_observer to the position on the focal plane.
+*/
+f(t) := (1-t)*matrix([xo,yo,focal,1]) + t*matrix([x,y,z,1]);
+xy(f(t).MVP);
+
+/* the correctness in the focal plane is easily verified:*/
+xy(matrix([x,y,0,1]).MVP);
+/* yields */
+2x/width, 2y/height
+\end{verbatim}
+\end{document}
