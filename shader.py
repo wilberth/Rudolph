@@ -106,13 +106,17 @@ void main() {
 				p[i] = rand(randSeed[i], min[i], max[i]);
 			else
 				p[i] = rand(((uint(nFrame)+randSeed.x)/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
+	for(int i=0; i<2; i++)
+		if (randSeed[i] != 0U)
+			p[i] *= (focal-p.z)/near;
 	//if (disparityFactor != 0 || disparityFactor !=1)
 		//disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
 	//else
 		//disparityFactorFactor = disparityFactor;
 	//p.z=0;
 	mat4 M = MVP(x, disparityFactor * xEye, y);
-	sizeClip = (M*(p+vec4(0.5*size, 0.5*size, 0, 0)) - M*(p-vec4(0.5*size, 0.5*size, 0.0, 0.0))).xy;
+	float s = size * (focal-p.z)/focal;
+	sizeClip = (M*(p+vec4(0.5*s, 0.5*s, 0, 0)) - M*(p-vec4(0.5*s, 0.5*s, 0.0, 0.0))).xy;
 	gl_Position = M * p;
 }
 """
