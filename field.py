@@ -329,7 +329,7 @@ class Field(QGLWidget):
 		# position of the center
 		self.dEyes = self.conditions.getNumber('dEyes')
 		self.zNear = self.conditions.getNumber('zNear')
-		self.zfar = self.conditions.getNumber('zFar')
+		self.zFar = self.conditions.getNumber('zFar')
 
 		
 		self.nMD  = self.conditions.getNumber('nMD'+moveString)
