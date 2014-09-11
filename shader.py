@@ -102,12 +102,10 @@ void main() {
 	float disparityFactorFactor = 0.0;
 	for(int i=0; i<3; i++)
 		if (randSeed[i] != 0U)
-			//p[i] += min[i]+(max[i]-min[i])*(snoise(vec2(float(nFrame), randSeed[i])));
-			//p[i] += 2.3*max[i]*(snoise(vec2(float(nFrame), randSeed[i])));
 			if(lifetime==0U)
-				p[i] = 2.0*rand(randSeed[i], min[i], max[i]);
+				p[i] = rand(randSeed[i], min[i], max[i]);
 			else
-				p[i] = 2.0*rand(((uint(nFrame)+randSeed.x)/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
+				p[i] = rand(((uint(nFrame)+randSeed.x)/lifetime)*0x10000U + randSeed[i], min[i], max[i]);
 	//if (disparityFactor != 0 || disparityFactor !=1)
 		//disparityFactorFactor = 5*snoise(vec2(float(nFrame), disparityFactor));
 	//else
