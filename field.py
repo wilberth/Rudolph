@@ -58,15 +58,15 @@ from OpenGL.GL.ARB import *
 class Field(QGLWidget):
 	# space
 	pViewer = np.array([0, 0, 1.2])         # m, x,y,z-position of the viewer
-	zNear   = 0.5*pViewer[2]                # m  viewable point nearest to viewer
+	zNear   = 0.5*pViewer[2]                # m  viewable point nearest to viewer, now exp. var
 	zFocal  = 0                             # m, position of physical screen, better not change this
-	zFar    = -0.5*pViewer[2]               # m, viewable point furthest from viewer
-	dEyes   = 0.063                         # m, distance between the eyes
+	zFar    = -0.5*pViewer[2]               # m, viewable point furthest from viewer, now exp. var
+	dEyes   = 0.063                         # m, distance between the eyes, now exp. var
 	dScreen = np.array([2.728, 1.02])       # m, size of the screen
-	halfWidthAtNearPlane = .5*dScreen[0] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
-	halfHeightAtNearPlane = .5*dScreen[1] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
-	tMovement = 1.5	                #Movement time reference and comparison movement, in seconds
-	tHoming = 2.0 	                #Movement time homing movement, in seconds
+	#halfWidthAtNearPlane = .5*dScreen[0] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
+	#halfHeightAtNearPlane = .5*dScreen[1] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
+	tMovement = 1.5                         # Movement time reference and comparison movement, in seconds
+	tHoming = 2.0                           # Movement time homing movement, in seconds
 	
 	
 	def __init__(self, parent):
@@ -88,7 +88,7 @@ class Field(QGLWidget):
 		self.fadeFactor = 1.0         # no fade, fully exposed
 		self.state = "sleep"
 		self.requestSleep = False
-		self.lifetime=60
+		self.lifetime = 60
 		
 		# audio
 		self.mediaObject = Phonon.MediaObject(self)
@@ -327,6 +327,10 @@ class Field(QGLWidget):
 		# set uniform variables and set up VBO's for the attribute values
 		# reference triangles, do not move in model coordinates
 		# position of the center
+		self.dEyes = self.conditions.getNumber('dEyes')
+		self.zNear = self.conditions.getNumber('zNear')
+		self.zfar = self.conditions.getNumber('zFar')
+
 		
 		self.nMD  = self.conditions.getNumber('nMD'+moveString)
 		self.nMND = self.conditions.getNumber('nMND'+moveString)
