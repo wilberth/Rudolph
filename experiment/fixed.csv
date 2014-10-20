@@ -1,2 +1,2 @@
 iCondition; nTrial; nReference; cReference; nNMD;    cNMD; nMND;    cMND; nNMND;   cNMND; dReference;  dTrial
-         0;      2;         10;    #0000FF;   00; #00FF00;    0; #00FF00;     0; #00FF00;       0.45;    0.3
+         0;      2;         10;    #0000FF;   10; #00FF00;    0; #00FF00;     0; #00FF00;       0.45;    0.3

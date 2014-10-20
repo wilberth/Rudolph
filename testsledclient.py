@@ -19,9 +19,10 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import time
-from sledclientsimulator import SledClientSimulator
+#from sledclientsimulator import SledClientSimulator
+from sledclient import SledClient
 
-s = SledClientSimulator()
+s = SledClient()
 print("#t(s)\tx(m)\tv(m/s)")
 s.goto(1.0, t=0)
 for i in range(16):
