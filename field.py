@@ -328,9 +328,9 @@ class Field(QGLWidget):
 		# reference triangles, do not move in model coordinates
 		# position of the center
 		try:
-			self.dEyes = self.conditions.trial['dEyes']
+			self.dEyes = self.conditions.trial['dEyes'+moveString]
 		except:
-			logging.info('could not get dEyes from experiment file')
+			logging.info('could not get dEyes'+moveString+' from experiment file')
 			
 		try:
 			self.zNear = self.conditions.trial['zNear']
@@ -338,10 +338,9 @@ class Field(QGLWidget):
 			logging.info('could not get zNear from experiment file')
 
 		try:
-			self.zfar = self.conditions.trial['zFar']
+			self.zFar = self.conditions.trial['zFar']
 		except:
 			logging.info('could not get zFar from experiment file')
-			
 		
 		self.nMD  = self.conditions.getNumber('nMD'+moveString)
 		self.nMND = self.conditions.getNumber('nMND'+moveString)
