@@ -138,7 +138,7 @@ def readFile(fileName):
 			del(head[-1])
 		nColumn = len(head)
 		
-		# determine column that contains iCconditions
+		# determine column that contains iCondition
 		conditionColumn = -1
 		for i in range(len(head)):
 			if head[i] == 'iCondition':
@@ -162,9 +162,9 @@ def readFile(fileName):
 			if len(head) < 1 or head[0][0:19]=="START OF TRIALDATA":
 				break
 			head = nextLine(reader)
-
+		
 		for row in reader:
-			row = nextLine(reader)
+			row = [d.lstrip(' \t#') for d in row]
 			condition = row[conditionColumn]
 			if not x.get(condition):
 				x[condition] = []
