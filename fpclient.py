@@ -8,7 +8,7 @@ def exitHandler():
 
 class FpClient(object):
 	"Client for NDI First Principles"
-	# package and component types
+	## package and component types
 	pTypes = ['Error', 'Command', 'XML', 'Data', 'Nodata', 'C3D']
 	cTypes = ['', '3D', 'Analog', 'Force', '6D', 'Event']
 	
