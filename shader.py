@@ -57,13 +57,14 @@ vs = \
 """#version 330
 
 uniform float width, height, near, focal, far, x, y; // see MVP for explanation
+uniform float nearStar, farStar;                     // limits for placement of stars
 uniform float xEye;                                  // added to x for stereoscopic disparity
 //uniform float size;                                  // linear size of stars
 uniform int nFrame;                                  // frame number
 uniform float moveFactor;                            // relative moving along with the observer of objects
 
 in vec3 position;                             // vertex coordinate
-in uvec3 randSeed;                             // random seed for random placement ( (0,0,0) if coodinates are used directly)
+in uvec3 randSeed;                            // random seed for random placement ( (0,0,0) if coodinates are used directly)
 in float disparityFactor;                     // scaling for xEye (1 if normal disparity is shown, 0 for no disparity)
 in float size;                                // linear size of stars
 in uint lifetime;                             // lifetime of star in number of frames
@@ -97,8 +98,8 @@ mat4 MVP(float xSled, float xEye, float y){
 void main() {
 	vec4 p = vec4(position, 1.0);
 	float d = 0.40; // maximum horizontal displacement of viewer
-	vec3 max = vec3((width/2+d)*far/focal, height/2*far/focal, focal-near);
-	vec3 min = vec3(-max.xy, focal-far);
+	vec3 max = vec3((width/2+d)*far/focal, height/2*far/focal, focal-nearStar);
+	vec3 min = vec3(-max.xy, focal-farStar);
 	float disparityFactorFactor = 0.0;
 	for(int i=0; i<3; i++)
 		if (randSeed[i] != 0U)

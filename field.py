@@ -20,7 +20,8 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 import sys, math, time, numpy as np, random, serial, ctypes, re
-import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions#, qtriggerjoystick
+import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions
+#import qtriggerjoystick
 from rusocsci import buttonbox
 
 #PyQt
@@ -50,23 +51,25 @@ from OpenGL.GL.ARB import *
  # ratio of the screen is different from the height-width ratio (in 
  # pixels) of the window, then this program will assume that the pixels 
  # are not square.
- # Objects are only drawn if they are between zNear and zFar
+ # Objects are only drawn if they are between zNear and zFar.
+ # Stars are always between zNearStar and zFarStar, 
+ # these are the experiment parameters zNear and zFar.
 
 	
 
 # field widget
 class Field(QGLWidget):
 	# space
-	pViewer = np.array([0, 0, 1.2])         # m, x,y,z-position of the viewer
-	zNear   = 0.5*pViewer[2]                # m  viewable point nearest to viewer, now exp. var
-	zFocal  = 0                             # m, position of physical screen, better not change this
-	zFar    = -0.5*pViewer[2]               # m, viewable point furthest from viewer, now exp. var
-	dEyes   = 0.063                         # m, distance between the eyes, now exp. var
-	dScreen = np.array([2.728, 1.02])       # m, size of the screen
-	#halfWidthAtNearPlane = .5*dScreen[0] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
-	#halfHeightAtNearPlane = .5*dScreen[1] * ( pViewer[2]-zNear ) / ( pViewer[2]-zFocal) 
-	tMovement = 1.5                         # Movement time reference and comparison movement, in seconds
-	tHoming = 2.0                           # Movement time homing movement, in seconds
+	pViewer   = np.array([0, 0, 1.2])       # m, x,y,z-position of the viewer
+	zNear     = 0.5*pViewer[2]              # m  viewable point nearest to viewer, now exp. var
+	zFocal    = 0                           # m, position of physical screen, do not change this
+	zFar      = -0.5*pViewer[2]             # m, viewable point furthest from viewer, now exp. var
+	zNearStar = zNear                       # m, nearest z where stars are located
+	zFarStar  = zFar                        # m, furthest z where stars are located
+	dEyes     = 0.063                       # m, distance between the eyes, now exp. var
+	dScreen   = np.array([2.728, 1.02])     # m, size of the screen
+	tMovement = 1.5                         # s, Movement time, reference and comparison movement
+	tHoming = 2.0                           # s, Movement time homing movement
 	
 	
 	def __init__(self, parent):
@@ -333,12 +336,12 @@ class Field(QGLWidget):
 			logging.info('could not get dEyes'+moveString+' from experiment file')
 			
 		try:
-			self.zNear = self.conditions.trial['zNear']
+			self.zNearStar = self.conditions.trial['zNear']
 		except:
 			logging.info('could not get zNear from experiment file')
 
 		try:
-			self.zFar = self.conditions.trial['zFar']
+			self.zFarStar = self.conditions.trial['zFar']
 		except:
 			logging.info('could not get zFar from experiment file')
 		
@@ -504,6 +507,8 @@ class Field(QGLWidget):
 		glUniform1f(self.nearLocation, self.pViewer[2]-self.zNear)
 		glUniform1f(self.focalLocation, self.pViewer[2]-self.zFocal)
 		glUniform1f(self.farLocation, self.pViewer[2]-self.zFar)
+		glUniform1f(self.nearStarLocation, self.pViewer[2]-self.zNearStar)
+		glUniform1f(self.farStarLocation, self.pViewer[2]-self.zFarStar)
 
 		
 	def initializeGL(self):
@@ -519,6 +524,8 @@ class Field(QGLWidget):
 		self.nearLocation = glGetUniformLocation(self.program, "near")
 		self.focalLocation = glGetUniformLocation(self.program, "focal")
 		self.farLocation = glGetUniformLocation(self.program, "far")
+		self.nearStarLocation = glGetUniformLocation(self.program, "nearStar")
+		self.farStarLocation = glGetUniformLocation(self.program, "farStar")
 		# dynamic uniforms
 		self.xLocation = glGetUniformLocation(self.program, "x")
 		self.yLocation = glGetUniformLocation(self.program, "y")
