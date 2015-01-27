@@ -579,7 +579,7 @@ class Field(QGLWidget):
 				pp = self.positionClient.getPosition(self.positionClient.time()+5./60)          # get marker positions
 				p = np.array(pp).ravel().tolist()       # python has too many types
 				x = p[0]
-				if self.moveString=="Trial":
+				if self.moveString=="Reference":
 					x *= (self.conditions.getNumber("dTrial")+self.conditions.getNumber("dVisualDelta"))/self.conditions.getNumber("dTrial")
 				self.viewerMove(x, p[1])         # use x- and y-coordinate of first marker
 			else:
