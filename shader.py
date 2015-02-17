@@ -59,6 +59,7 @@ vs = \
 uniform float width, height, near, focal, far, x, y; // see MVP for explanation
 uniform float nearStar, farStar;                     // limits for placement of stars
 uniform float xEye;                                  // added to x for stereoscopic disparity
+uniform float xDelta;                                // added to x for reference move scaling
 //uniform float size;                                  // linear size of stars
 uniform int nFrame;                                  // frame number
 uniform float moveFactor;                            // relative moving along with the observer of objects
@@ -90,7 +91,7 @@ mat4 MVP(float xSled, float xEye, float y){
 	return mat4(
 		                 2*focal/width,              0,                                        0,    0,
 		                             0, 2*focal/height,                                        0,    0,
-		         -2*(xSled+xEye)/width,    -2*y/height,                    (far+near)/(near-far),   -1,
+		  -2*(xSled+xEye+xDelta)/width,    -2*y/height,                    (far+near)/(near-far),   -1,
 		xSled*moveFactor*2*focal/width,              0, (2*far*near-focal*(far+near))/(near-far), focal
 		);
 }

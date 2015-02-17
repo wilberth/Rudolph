@@ -530,6 +530,7 @@ class Field(QGLWidget):
 		self.xLocation = glGetUniformLocation(self.program, "x")
 		self.yLocation = glGetUniformLocation(self.program, "y")
 		self.xEyeLocation = glGetUniformLocation(self.program, "xEye")
+		self.xDeltaLocation = glGetUniformLocation(self.program, "xDelta")
 		self.nFrameLocation = glGetUniformLocation(self.program, "nFrame")
 		self.fadeFactorLocation = glGetUniformLocation(self.program, "fadeFactor")
 		self.moveFactorLocation = glGetUniformLocation(self.program, "moveFactor")
@@ -580,7 +581,10 @@ class Field(QGLWidget):
 				p = np.array(pp).ravel().tolist()       # python has too many types
 				x = p[0]
 				if self.moveString=="Reference":
-					x *= (self.conditions.getNumber("dTrial")+self.conditions.getNumber("dVisualDelta"))/self.conditions.getNumber("dTrial")
+					glUniform1f(self.xDeltaLocation, x * self.conditions.getNumber("dVisualDelta")/self.conditions.getNumber("dReference"))
+				else:
+					glUniform1f(self.xDeltaLocation, 0)
+					#x *= (self.conditions.getNumber("dTrial")+self.conditions.getNumber("dVisualDelta"))/self.conditions.getNumber("dTrial")
 				self.viewerMove(x, p[1])         # use x- and y-coordinate of first marker
 			else:
 				logging.error("mode not recognized: "+mode)
