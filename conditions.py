@@ -321,11 +321,10 @@ if __name__ == '__main__':
 
 	while conditions.iTrial < conditions.nTrial:
 		print("{}/{}".format(conditions.iTrial, conditions.nTrial))
-		d = conditions.trial['dTrial']
-		dReference = conditions.trial['dReference']
-		if d > dReference:
-			print("x: {} ↑".format(d))
+		x = conditions.trial['x']
+		if x < 1.0:
+			print("x: {} ↑".format(x))
 		else:
-			print("x: {} ↓".format(d))
-		conditions.nextTrial(d > dReference)
+			print("x: {} ↓".format(x))
+		conditions.nextTrial(x > 1.0)
 		time.sleep(1)
