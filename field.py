@@ -69,7 +69,8 @@ class Field(QGLWidget):
 	dEyes     = 0.063                       # m, distance between the eyes, now exp. var
 	dScreen   = np.array([2.728, 1.02])     # m, size of the screen
 	tMovement = 1.5                         # s, Movement time, reference and comparison movement
-	tHoming = 2.0                           # s, Movement time homing movement
+	tHoming   = 2.0                         # s, Movement time homing movement
+	nBall     = 24                          # number of vertices in ball
 	
 	
 	def __init__(self, parent):
@@ -105,6 +106,8 @@ class Field(QGLWidget):
 ##		self.homingText.say('Homing.')
 		#self.beep = pyglet.resource.media('sound\beep-5.wav')
 		self.moveString = "Reference"
+		self.t0Trial = -1 # -1 for not currently trial, >=0 for start time of trial
+
 		
 		# shutter glasses
 		try:
@@ -172,10 +175,13 @@ class Field(QGLWidget):
 			dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovement)
 			if self.conditions.trial["mode"+self.moveString] != "visual":
 				dt = self.sledClient.goto(self.h+self.d, self.tMovement)
+			if self.moveString=="Trial":
+				self.t0Trial = time.time()
 			logging.info("state: move0 ({}): d = {} m, dt = {} s".format(self.moveString, self.d, dt))
 			QTimer.singleShot(1000*dt, self.changeState) 
 		elif self.state=="move0":
-			self.state="move1ReInit"
+			self.state = "move1ReInit"
+			self.t0Trial = -1
 			if self.swapMoves:
 				self.moveString = "Reference"
 			else:
@@ -195,11 +201,13 @@ class Field(QGLWidget):
 			dt = self.sledClientSimulator.goto(self.h+ddAll, self.tMovement)
 			#if self.conditions.trial["mode"+self.moveString] != "visual":
 			dt = self.sledClient.goto(self.h+ddVes, self.tMovement)
+			if self.moveString=="Trial":
+				self.t0Trial = time.time()
 			logging.info("state: move1 ({}): d = {} m, dt = {} s".format(self.moveString, d, dt))
 			QTimer.singleShot(1000*dt+np.random.uniform(0.1, 0.3), self.changeState) #Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
-
 		elif self.state=="move1":
 			self.state="responseBeep"
+			self.t0Trial = -1
 			logging.info("state: wait (for input)")
 			self.soundBeep()
 			QTimer.singleShot(350, self.changeState)        # extra timer to make sure that fade out is complete
@@ -350,6 +358,16 @@ class Field(QGLWidget):
 		self.nNMD = self.conditions.getNumber('nNMD'+moveString)
 		self.nNMND = self.conditions.getNumber('nNMND'+moveString)
 		
+		# ball
+		if 'dtBall' in self.conditions.trial:
+			self.dtBall = self.conditions.getNumber('dtBall')
+			self.pBall = np.array((self.conditions.getNumber('xBall'), self.conditions.getNumber('yBall'), self.conditions.getNumber('zBall')))
+			self.vBall = np.array((self.conditions.getNumber('vxBall'), self.conditions.getNumber('vyBall'), self.conditions.getNumber('vzBall')))
+			self.g = np.array((0, -self.conditions.getNumber('aBall'), 0)) # m/s^2 grav. acc.
+		else:
+			self.dtBall = -1
+
+		
 		if self.nMND+self.nNMND > 0:
 			# there are non-disparity objects: close right shutter
 			self.openShutter(False, True)
@@ -459,8 +477,30 @@ class Field(QGLWidget):
 		])
 		#print(np.shape(nonMovNonDispVertices))
 		
+		# ball
+		nPast += n
+		n = self.nBall
+		position = np.zeros((n, 3), dtype='float32')
+		for i, a in enumerate(np.linspace(0, 2*math.pi, n, endpoint=False)):
+			position[i][0] = 0.05 * math.cos(a)
+			position[i][1] = 0.05 * math.sin(a)
+		randSeed = np.zeros((n,3), dtype='uint32'); randSeed.dtype = 'float32'
+		disparityFactor = np.ones((n, 1), dtype='float32')
+		size = np.array(0.02*np.ones((n, 1)), dtype='float32')
+		lifetime = np.array(np.zeros((n, 1)), dtype='float32')
+		#position[n-1][1] = 0.1 # does nothing
+
+		ballVertices = np.hstack([
+			position, 
+			randSeed,
+			disparityFactor,
+			size,
+			lifetime,
+		])
+		
 		# fixation cross
 		nPast += n
+		n = 1
 		xFixation = 0.0
 		if self.conditions.getString("mode"+self.moveString) == 'visual':
 			try:
@@ -470,7 +510,6 @@ class Field(QGLWidget):
 				xFixation = 2*p[0]
 			except:
 				pass
-			
 			
 		position = np.array([xFixation, 0, 0], dtype='float32')
 		randSeed = np.array([0, 0, 0], dtype='uint32'); randSeed.dtype = 'float32'
@@ -485,21 +524,25 @@ class Field(QGLWidget):
 			size,
 			lifetime,
 		])
-
+		
 		assert (referenceVertices.dtype=='float32')
 		assert (movNonDispVertices.dtype=='float32')
 		assert (nonMovDispVertices.dtype=='float32')
 		assert (nonMovNonDispVertices.dtype=='float32')
 		assert (fixationCrossVertices.dtype=='float32')
+		assert (ballVertices.dtype=='float32')
 		# send the whole array to the video card
-		self.vbo = vbo.VBO(
-			np.vstack([
+		vertices = np.vstack([
 				np.array(referenceVertices, "f"), 
 				np.array(movNonDispVertices, "f"), 
 				np.array(nonMovDispVertices, "f"), 
 				np.array(nonMovNonDispVertices, "f"), 
-				np.array(fixationCrossVertices, "f")]), 
-			usage='GL_STATIC_DRAW')
+				np.array(ballVertices, "f"),
+				np.array(fixationCrossVertices, "f"),
+				])
+			
+
+		self.vbo = vbo.VBO(vertices, usage='GL_STATIC_DRAW')
 
 		# uniforms
 		glUniform1f(self.widthLocation, self.dScreen[0])
@@ -531,6 +574,7 @@ class Field(QGLWidget):
 		self.yLocation = glGetUniformLocation(self.program, "y")
 		self.xEyeLocation = glGetUniformLocation(self.program, "xEye")
 		self.xDeltaLocation = glGetUniformLocation(self.program, "xDelta")
+		self.deltaPositionLocation = glGetUniformLocation(self.program, "deltaPosition")
 		self.nFrameLocation = glGetUniformLocation(self.program, "nFrame")
 		self.fadeFactorLocation = glGetUniformLocation(self.program, "fadeFactor")
 		self.moveFactorLocation = glGetUniformLocation(self.program, "moveFactor")
@@ -568,6 +612,7 @@ class Field(QGLWidget):
 			sys.stdout.flush()
 			self.nFramePerSecond = 0
 		self.nFramePerSecond += 1
+		
 		
 		
 		if hasattr(self, "positionClient"): # only false if mouse is used
@@ -673,18 +718,33 @@ class Field(QGLWidget):
 			n = self.nNMND
 			glDrawArrays(GL_POINTS, nPast, n)
 			
+			# draw ball
+			nPast += n
+			n = self.nBall
+			if self.dtBall >= 0 and self.t0Trial >=0:
+				# trial move
+				dt = time.time() - self.t0Trial - self.dtBall
+				if dt >= 0:
+					glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([0,0,1],"f"))
+					glUniform3fv(self.deltaPositionLocation, 1, np.array(
+						(self.pBall + self.vBall * dt + 0.5*self.g*dt**2), "f"))
+					glDrawArrays(GL_POINTS, nPast, n)
+					glUniform3fv(self.deltaPositionLocation, 1, np.array((0,0,0), "f"))
+			
 			# draw fixation cross in white
 			glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([1,1,1],"f"))
+			nPast += n 
 			if mode!='visual':
 				glUniform1f(self.moveFactorLocation, 1.0)
 			else:
 				glUniform1f(self.moveFactorLocation, 0.0)
-			nPast += n
 			glUniform1f(self.xEyeLocation, 0)
 			glDrawArrays(GL_POINTS, nPast, 1)
+			
+			
+			# end drawing
 			self.vbo.unbind()
 			glDisableClientState(GL_VERTEX_ARRAY)
-			
 
 		## schedule next redraw
 		if not self.state == "sleep":
