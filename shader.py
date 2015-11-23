@@ -151,7 +151,7 @@ void main(void) {
 fs = \
 """#version 330
 uniform vec3 color;
-uniform float fadeFactor;   // multiplyer for color (1.0 for faded in, 0.0 for faded out)
+uniform float fadeFactor;   // multiplier for color (1.0 for faded in, 0.0 for faded out)
 void main() {
 	gl_FragColor = vec4( fadeFactor*color, 1 );
 }
