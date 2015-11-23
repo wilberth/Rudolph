@@ -68,7 +68,8 @@ class Field(QGLWidget):
 	zFarStar  = zFar                        # m, furthest z where stars are located
 	dEyes     = 0.063                       # m, distance between the eyes, now exp. var
 	dScreen   = np.array([2.728, 1.02])     # m, size of the screen
-	tMovement = 1.5                         # s, Movement time, reference and comparison movement
+	tMovementReference = 1.5                # s, Movement time, reference  movement
+	tMovementTrial     = 1.5                # s, Movement time, trial movement
 	tHoming   = 2.0                         # s, Movement time homing movement
 	nBall     = 24                          # number of vertices in ball
 	
@@ -172,11 +173,16 @@ class Field(QGLWidget):
 			QTimer.singleShot(500, self.changeState)
 		elif self.state=="move0Prep":
 			self.state = "move0"
-			dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovement)
-			if self.conditions.trial["mode"+self.moveString] != "visual":
-				dt = self.sledClient.goto(self.h+self.d, self.tMovement)
 			if self.moveString=="Trial":
+				dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovementTrial)
+				if self.conditions.trial["mode"+self.moveString] != "visual":
+					dt = self.sledClient.goto(self.h+self.d, self.tMovementTrial)
 				self.t0Trial = time.time()
+			else:
+				dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovementReference)
+				if self.conditions.trial["mode"+self.moveString] != "visual":
+					dt = self.sledClient.goto(self.h+self.d, self.tMovementReference)
+
 			logging.info("state: move0 ({}): d = {} m, dt = {} s".format(self.moveString, self.d, dt))
 			QTimer.singleShot(1000*dt, self.changeState) 
 		elif self.state=="move0":
@@ -198,11 +204,14 @@ class Field(QGLWidget):
 			if self.conditions.trial["modeTrial"] != 'visual':
 				ddVes +=self.conditions.trial['dTrial']
 			ddAll = self.conditions.trial['dReference']+self.conditions.trial['dTrial']
-			dt = self.sledClientSimulator.goto(self.h+ddAll, self.tMovement)
-			#if self.conditions.trial["mode"+self.moveString] != "visual":
-			dt = self.sledClient.goto(self.h+ddVes, self.tMovement)
 			if self.moveString=="Trial":
+				dt = self.sledClientSimulator.goto(self.h+ddAll, self.tMovementTrial)
+				dt = self.sledClient.goto(self.h+ddVes, self.tMovementTrial)
 				self.t0Trial = time.time()
+			else:
+				dt = self.sledClientSimulator.goto(self.h+ddAll, self.tMovementReference)
+				dt = self.sledClient.goto(self.h+ddVes, self.tMovementReference)
+
 			logging.info("state: move1 ({}): d = {} m, dt = {} s".format(self.moveString, d, dt))
 			QTimer.singleShot(1000*dt+np.random.uniform(0.1, 0.3), self.changeState) #Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
 		elif self.state=="move1":
@@ -363,7 +372,11 @@ class Field(QGLWidget):
 			self.dtBall = self.conditions.getNumber('dtBall')
 			self.pBall = np.array((self.conditions.getNumber('xBall'), self.conditions.getNumber('yBall'), self.conditions.getNumber('zBall')))
 			self.vBall = np.array((self.conditions.getNumber('vxBall'), self.conditions.getNumber('vyBall'), self.conditions.getNumber('vzBall')))
-			self.g = np.array((0, -self.conditions.getNumber('aBall'), 0)) # m/s^2 grav. acc.
+			#self.g = np.array((0, -self.conditions.getNumber('aBall'), 0)) # m/s^2 grav. acc.
+			# acceleration in direction of initial velocity
+			if np.linalg.norm(self.vBall)==0:
+				logging.error("no initial speed")
+			self.g = self.conditions.getNumber('aBall')*self.vBall/np.linalg.norm(self.vBall)
 		else:
 			self.dtBall = -1
 
