@@ -23,6 +23,7 @@ import os, time, logging
 """ Log output to both stdout and a file. If a directory "log" exists, it is using for the logfiles."""
 def openLog(fileName=""):
 	if fileName == "":
+		directory = ""
 		if os.path.isdir('log'):
 			directory = 'log/'
 		fileName="{}{}.dat".format(directory, time.strftime('%Y-%m-%dT%H.%M.%S')) # MS Windows does not allow '-'
