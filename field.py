@@ -219,7 +219,7 @@ class Field(QGLWidget):
 			self.t0Trial = -1
 			logging.info("state: wait (for input)")
 			self.soundBeep()
-			QTimer.singleShot(350, self.changeState)        # extra timer to make sure that fade out is complete
+			QTimer.singleShot(100, self.changeState)        # extra timer to make sure that fade out is complete
 		elif self.state=="responseBeep":
 			self.state="wait"
 			self.parent().downAction.setEnabled(True)

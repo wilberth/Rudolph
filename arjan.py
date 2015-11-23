@@ -113,7 +113,7 @@ class Main(QMainWindow):
 		downIcon = QIcon('icon/down.png')
 		self.downAction = QAction(downIcon, 'Down trial', self)
 		self.downAction.setShortcut(Qt.Key_Down)
-		self.upAction.setShortcut(Qt.Key_Left)
+		self.downAction.setShortcut(Qt.Key_Left)
 		self.downAction.setStatusTip('decrease value')
 		self.downAction.triggered.connect(lambda: self.field.addData(False))
 		self.downAction.setEnabled(False)
