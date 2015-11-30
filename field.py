@@ -375,8 +375,9 @@ class Field(QGLWidget):
 			#self.g = np.array((0, -self.conditions.getNumber('aBall'), 0)) # m/s^2 grav. acc.
 			# acceleration in direction of initial velocity
 			if np.linalg.norm(self.vBall)==0:
-				logging.error("no initial speed")
-			self.g = self.conditions.getNumber('aBall')*self.vBall/np.linalg.norm(self.vBall)
+				self.g = self.conditions.getNumber('aBall')*np.array([0,-1,0])
+			else:
+				self.g = self.conditions.getNumber('aBall')*self.vBall/np.linalg.norm(self.vBall)
 		else:
 			self.dtBall = -1
 
