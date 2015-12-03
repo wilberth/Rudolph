@@ -119,6 +119,7 @@ class Field(QGLWidget):
 						
 		# experimental conditions
 		self.conditions = conditions.Conditions(dataKeys=['swapMoves', 'subject'])
+		self.nInterval = 1
 
 	def __del__(self):
 		self.quit()
@@ -347,6 +348,11 @@ class Field(QGLWidget):
 		# set uniform variables and set up VBO's for the attribute values
 		# reference triangles, do not move in model coordinates
 		# position of the center
+		try:
+			self.nInterval = self.conditions.trial['nInterval']
+		except:
+			logging.info("nInterval not defined, using default nInterval=1")
+
 		try:
 			self.dEyes = self.conditions.trial['dEyes'+moveString]
 		except:
