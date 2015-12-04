@@ -20,7 +20,7 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 import sys, math, time, numpy as np, random, serial, ctypes, re
-import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions
+import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions, profiles
 #import qtriggerjoystick
 from rusocsci import buttonbox
 
@@ -375,15 +375,11 @@ class Field(QGLWidget):
 		
 		# ball
 		if 'dtBall' in self.conditions.trial:
+			self.t0Ball = self.conditions.getNumber('t0Ball')
 			self.dtBall = self.conditions.getNumber('dtBall')
-			self.pBall = np.array((self.conditions.getNumber('xBall'), self.conditions.getNumber('yBall'), self.conditions.getNumber('zBall')))
-			self.vBall = np.array((self.conditions.getNumber('vxBall'), self.conditions.getNumber('vyBall'), self.conditions.getNumber('vzBall')))
-			#self.g = np.array((0, -self.conditions.getNumber('aBall'), 0)) # m/s^2 grav. acc.
-			# acceleration in direction of initial velocity
-			if np.linalg.norm(self.vBall)==0:
-				self.g = self.conditions.getNumber('aBall')*np.array([0,-1,0])
-			else:
-				self.g = self.conditions.getNumber('aBall')*self.vBall/np.linalg.norm(self.vBall)
+			self.p0Ball = np.array((self.conditions.getNumber('x0Ball'), self.conditions.getNumber('y0Ball'), self.conditions.getNumber('z0Ball')))
+			self.p1Ball = np.array((self.conditions.getNumber('x1Ball'), self.conditions.getNumber('y1Ball'), self.conditions.getNumber('z1Ball')))
+			self.fBall = getattr(profiles, self.conditions.trial['profileBall'])
 		else:
 			self.dtBall = -1
 
@@ -501,14 +497,19 @@ class Field(QGLWidget):
 		nPast += n
 		n = self.nBall
 		position = np.zeros((n, 3), dtype='float32')
+		rBall=0.05
+		try:
+			rBall = self.conditions.trial['rBall']
+		except:
+			pass
 		for i, a in enumerate(np.linspace(0, 2*math.pi, n, endpoint=False)):
-			position[i][0] = 0.05 * math.cos(a)
-			position[i][1] = 0.05 * math.sin(a)
+			position[i][0] = rBall * math.cos(a)
+			position[i][1] = rBall * math.sin(a)
 		randSeed = np.zeros((n,3), dtype='uint32'); randSeed.dtype = 'float32'
 		disparityFactor = np.ones((n, 1), dtype='float32')
+		
 		size = np.array(0.02*np.ones((n, 1)), dtype='float32')
 		lifetime = np.array(np.zeros((n, 1)), dtype='float32')
-		#position[n-1][1] = 0.1 # does nothing
 
 		ballVertices = np.hstack([
 			position, 
@@ -743,11 +744,11 @@ class Field(QGLWidget):
 			n = self.nBall
 			if self.dtBall >= 0 and self.t0Trial >=0:
 				# trial move
-				dt = time.time() - self.t0Trial - self.dtBall
+				dt = (time.time() - self.t0Trial - self.t0Ball)/self.dtBall
 				if dt >= 0:
 					glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([0,0,1],"f"))
-					glUniform3fv(self.deltaPositionLocation, 1, np.array(
-						(self.pBall + self.vBall * dt + 0.5*self.g*dt**2), "f"))
+					glUniform3fv(self.deltaPositionLocation, 1,
+						np.array(self.p0Ball + (self.p1Ball-self.p0Ball) * self.fBall(dt), "f"))
 					glDrawArrays(GL_POINTS, nPast, n)
 					glUniform3fv(self.deltaPositionLocation, 1, np.array((0,0,0), "f"))
 			
