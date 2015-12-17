@@ -71,7 +71,6 @@ class Field(QGLWidget):
 	tMovementReference = 1.5                # s, Movement time, reference  movement
 	tMovementTrial     = 1.5                # s, Movement time, trial movement
 	tHoming   = 2.0                         # s, Movement time homing movement
-	nBall     = 24                          # number of vertices in ball
 	
 	
 	def __init__(self, parent):
@@ -120,6 +119,8 @@ class Field(QGLWidget):
 		# experimental conditions
 		self.conditions = conditions.Conditions(dataKeys=['swapMoves', 'subject'])
 		self.nInterval = 1
+		self.nBall     = 24 # number of stars in ball
+
 
 	def __del__(self):
 		self.quit()
@@ -375,6 +376,10 @@ class Field(QGLWidget):
 		
 		# ball
 		if 'dtBall' in self.conditions.trial:
+			try:
+				self.nBall = self.conditions.trial['nBall']
+			except:
+				pass
 			self.t0Ball = self.conditions.getNumber('t0Ball')
 			self.dtBall = self.conditions.getNumber('dtBall')
 			self.p0Ball = np.array((self.conditions.getNumber('x0Ball'), self.conditions.getNumber('y0Ball'), self.conditions.getNumber('z0Ball')))
@@ -503,8 +508,8 @@ class Field(QGLWidget):
 		except:
 			pass
 		for i, a in enumerate(np.linspace(0, 2*math.pi, n, endpoint=False)):
-			position[i][0] = rBall * math.cos(a)
-			position[i][1] = rBall * math.sin(a)
+			position[i][0] = rBall*np.random.uniform() * math.cos(a)
+			position[i][1] = rBall*np.random.uniform() * math.sin(a)
 		randSeed = np.zeros((n,3), dtype='uint32'); randSeed.dtype = 'float32'
 		disparityFactor = np.ones((n, 1), dtype='float32')
 		
