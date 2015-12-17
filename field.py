@@ -747,10 +747,10 @@ class Field(QGLWidget):
 			# draw ball
 			nPast += n
 			n = self.nBall
-			if self.dtBall >= 0 and self.t0Trial >=0:
+			if 0 <= self.dtBall <= 1:
 				# trial move
-				dt = (time.time() - self.t0Trial - self.t0Ball)/self.dtBall
-				if dt >= 0:
+				dt = (time.time() - self.t0Trial - self.t0Ball)/self.dtBall # 0-1
+				if dt >= 0 and dt <= 1:
 					glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([0,0,1],"f"))
 					glUniform3fv(self.deltaPositionLocation, 1,
 						np.array(self.p0Ball + (self.p1Ball-self.p0Ball) * self.fBall(dt), "f"))
