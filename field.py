@@ -107,6 +107,7 @@ class Field(QGLWidget):
 		#self.beep = pyglet.resource.media('sound\beep-5.wav')
 		self.moveString = "Reference"
 		self.t0Trial = -1 # -1 for not currently trial, >=0 for start time of trial
+		self.t0Wait = -1 # -1 for not currently wait, >=0 for start time of trial
 
 		
 		# shutter glasses
@@ -224,11 +225,13 @@ class Field(QGLWidget):
 			QTimer.singleShot(200, self.changeState)        # extra timer to make sure that fade out is complete
 		elif self.state=="responseBeep":
 			self.state="wait"
+			self.t0Wait = time.time()
 			self.parent().downAction.setEnabled(True)
 			self.parent().upAction.setEnabled(True)
 			#self.parent().j.setEnabled(True)
 		elif self.state=="wait":
 			self.state = "fadeOut"
+			self.t0Wait = -1
 			logging.info("state: fadeOut")
 			#self.parent().j.setEnabled(False)
 			QTimer.singleShot(500, self.changeState)
@@ -375,18 +378,21 @@ class Field(QGLWidget):
 		self.nNMND = self.conditions.getNumber('nNMND'+moveString)
 		
 		# ball
-		if 'dtBall' in self.conditions.trial:
+		if 'rBall' in self.conditions.trial:
 			try:
-				self.nBall = self.conditions.trial['nBall']
+				self.nBall = self.conditions.trial['nBall'] # optional
 			except:
 				pass
+			self.rBall = self.conditions.getNumber('rBall')
 			self.t0Ball = self.conditions.getNumber('t0Ball')
 			self.dtBall = self.conditions.getNumber('dtBall')
 			self.p0Ball = np.array((self.conditions.getNumber('x0Ball'), self.conditions.getNumber('y0Ball'), self.conditions.getNumber('z0Ball')))
 			self.p1Ball = np.array((self.conditions.getNumber('x1Ball'), self.conditions.getNumber('y1Ball'), self.conditions.getNumber('z1Ball')))
 			self.fBall = getattr(profiles, self.conditions.trial['profileBall'])
+			self.dtResponseBall = self.conditions.getNumber('dtResponseBall')
+			self.xResponseBall = self.conditions.getNumber('xResponseBall')
 		else:
-			self.dtBall = -1
+			self.rBall = -1
 
 		
 		if self.nMND+self.nNMND > 0:
@@ -498,15 +504,11 @@ class Field(QGLWidget):
 		])
 		#print(np.shape(nonMovNonDispVertices))
 		
-		# ball
+		# ball, make one even if we wont show one
 		nPast += n
 		n = self.nBall
 		position = np.zeros((n, 3), dtype='float32')
-		rBall=0.05
-		try:
-			rBall = self.conditions.trial['rBall']
-		except:
-			pass
+		rBall = self.conditions.getNumber('rBall')
 		for i, a in enumerate(np.linspace(0, 2*math.pi, n, endpoint=False)):
 			position[i][0] = rBall*np.random.uniform() * math.cos(a)
 			position[i][1] = rBall*np.random.uniform() * math.sin(a)
@@ -747,18 +749,25 @@ class Field(QGLWidget):
 			# draw ball
 			nPast += n
 			n = self.nBall
-			if 0 <= self.dtBall <= 1:
-				# trial move
+			dt = -1
+			if self.t0Trial > 0 and self.dtBall > 0:
 				dt = (time.time() - self.t0Trial - self.t0Ball)/self.dtBall # 0-1
-				if dt >= 0 and dt <= 1:
-					glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([0,0,1],"f"))
-					glUniform3fv(self.deltaPositionLocation, 1,
-						np.array(self.p0Ball + (self.p1Ball-self.p0Ball) * self.fBall(dt), "f"))
-					glDrawArrays(GL_POINTS, nPast, n)
-					glUniform3fv(self.deltaPositionLocation, 1, np.array((0,0,0), "f"))
+				glUniform3fv(self.deltaPositionLocation, 1,
+					np.array(self.p0Ball + (self.p1Ball-self.p0Ball) * self.fBall(dt), "f"))
+			elif self.t0Wait > 0 and self.dtResponseBall > 0:
+				dt = (time.time() - self.t0Wait)/self.dtResponseBall # 0-1
+				glUniform3fv(self.deltaPositionLocation, 1,
+					np.array([self.xResponseBall, 0, 0], "f"))
+			if 0 <= dt <= 1:
+				glUniform1f(self.fadeFactorLocation, 1.0)
+				glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([0,0,1],"f"))
+				glDrawArrays(GL_POINTS, nPast, n)
+				glUniform3fv(self.deltaPositionLocation, 1, np.array((0,0,0), "f"))
+				glUniform1f(self.fadeFactorLocation, self.fadeFactor)
 			
 			# draw fixation cross in white
 			glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([1,1,1],"f"))
+			glUniform3fv(self.deltaPositionLocation, 1, np.array([0, 0, 0], "f"))
 			nPast += n 
 			if mode!='visual':
 				glUniform1f(self.moveFactorLocation, 1.0)
