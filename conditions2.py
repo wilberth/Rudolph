@@ -19,7 +19,7 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 from __future__ import print_function
-import sys, math, csv, re, os, time, numpy as np, logging
+import sys, math, csv, re, os, time, numpy as np, logging, random
 import root
 
 class Conditions():
@@ -172,7 +172,10 @@ class Conditions():
 					elif 'iteratorKey' not in condition and re.match('\[.+\]', value): # iterable
 						logging.debug("Iterator: {}".format(value))
 						condition['iteratorKey'] = self.keys[i]
-						condition['iterator'] = eval(value).__iter__()
+						condition['iteratorSource'] = eval(value)
+						# next two lines will be repeated in case of StopIteration
+						random.shuffle(condition['iteratorSource'])
+						condition['iterator'] = condition['iteratorSource'].__iter__()
 					elif re.match('^[a-zA-Z0-9]+$', value): # string
 						#logging.debug("string: {}".format(value))
 						condition[self.keys[i]] = value
@@ -265,7 +268,7 @@ class Conditions():
 		
 	def makeTrial(self):
 		"""expand current condition into a trial """
-		self.trial = self.conditions[self.iCondition]
+		self.trial = self.conditions[self.iCondition] # why not deep?
 		extra = ""
 		if 'functionKey' in self.trial:
 			self.trial[self.trial['functionKey']] = self.trial['function']()
@@ -273,7 +276,14 @@ class Conditions():
 			extra = ": {} = {}".format(self.trial['functionKey'], self.trial[self.trial['functionKey']])
 
 		if 'iteratorKey' in self.trial:
-			self.trial[self.trial['iteratorKey']] = self.trial['iterator'].next()
+			try:
+				self.trial[self.trial['iteratorKey']] = self.trial['iterator'].next()
+			except StopIteration:
+				# next two lines were executed at initialization already
+				random.shuffle(self.trial['iteratorSource'])
+				self.trial['iterator'] = self.trial['iteratorSource'].__iter__()
+				self.trial[self.trial['iteratorKey']] = self.trial['iterator'].next()
+
 			logging.debug("expanding {}: {}".format(self.trial['iteratorKey'], self.trial[self.trial['iteratorKey']]))
 			extra = ": {} = {}".format(self.trial['iteratorKey'], self.trial[self.trial['iteratorKey']])
 		
@@ -319,7 +329,7 @@ def test(x):
 	return x*x-2
 
 if __name__ == '__main__':
-	logging.basicConfig(level=logging.DEBUG)
+	logging.basicConfig(level=logging.INFO)
 	conditions = Conditions()
 	if len(sys.argv) > 1:
 		conditions.load(sys.argv[1])
