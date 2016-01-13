@@ -390,7 +390,7 @@ class Field(QGLWidget):
 			self.p1Ball = np.array((self.conditions.getNumber('x1Ball'), self.conditions.getNumber('y1Ball'), self.conditions.getNumber('z1Ball')))
 			self.fBall = getattr(profiles, self.conditions.trial['profileBall'])
 			self.dtResponseBall = self.conditions.getNumber('dtResponseBall')
-			self.xResponseBall = self.conditions.getNumber('xResponseBall')
+			self.dxResponseBall = self.conditions.getNumber('dxResponseBall')
 		else:
 			self.rBall = -1
 
@@ -757,7 +757,7 @@ class Field(QGLWidget):
 			elif self.t0Wait > 0 and self.dtResponseBall > 0:
 				dt = (time.time() - self.t0Wait)/self.dtResponseBall # 0-1
 				glUniform3fv(self.deltaPositionLocation, 1,
-					np.array([self.xResponseBall, 0, 0], "f"))
+					np.array([self.p0Ball[0]+self.dxResponseBall, 0, 0], "f"))
 			if 0 <= dt <= 1:
 				glUniform1f(self.fadeFactorLocation, 1.0)
 				glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([0,0,1],"f"))
