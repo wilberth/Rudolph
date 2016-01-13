@@ -20,7 +20,8 @@ along with Sleelab.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 import sys, math, time, numpy as np, random, serial, ctypes, re
-import fpclient, sledclient, sledclientsimulator, root, transforms, shader, conditions, profiles
+import fpclient, sledclient, sledclientsimulator, root, transforms, shader, profiles
+import conditions2 as conditions
 #import qtriggerjoystick
 from rusocsci import buttonbox
 
