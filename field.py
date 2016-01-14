@@ -775,7 +775,8 @@ class Field(QGLWidget):
 			else:
 				glUniform1f(self.moveFactorLocation, 0.0)
 			glUniform1f(self.xEyeLocation, 0)
-			glDrawArrays(GL_POINTS, nPast, 1)
+			if mode!='vestibular':
+				glDrawArrays(GL_POINTS, nPast, 1)
 			
 			
 			# end drawing
