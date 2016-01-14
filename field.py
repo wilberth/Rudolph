@@ -107,8 +107,8 @@ class Field(QGLWidget):
 ##		self.homingText.say('Homing.')
 		#self.beep = pyglet.resource.media('sound\beep-5.wav')
 		self.moveString = "Reference"
-		self.t0Trial = -1 # -1 for not currently trial, >=0 for start time of trial
-		self.t0Wait = -1 # -1 for not currently wait, >=0 for start time of trial
+		self.t0PreTrial = -1 # -1 for not currently pretrial, >=0 for start time of pretrial state
+		self.t0Wait = -1 # -1 for not currently wait, >=0 for start time of wait (response phase)
 
 		
 		# shutter glasses
@@ -174,14 +174,16 @@ class Field(QGLWidget):
 			self.state = "move0Prep" # Additional step to allow for singleshot timer start-noise
 			self.soundNoise()
 			print("Sled position: ",self.pViewer[0])
-			QTimer.singleShot(500, self.changeState)
+			if self.swapMoves:
+				self.t0PreTrial = time.time()
+			QTimer.singleShot(1000, self.changeState)
 		elif self.state=="move0Prep":
 			self.state = "move0"
+			self.t0PreTrial = -1
 			if self.moveString=="Trial":
 				dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovementTrial)
 				if self.conditions.trial["mode"+self.moveString] != "visual":
 					dt = self.sledClient.goto(self.h+self.d, self.tMovementTrial)
-				self.t0Trial = time.time()
 			else:
 				dt = self.sledClientSimulator.goto(self.h+self.d, self.tMovementReference)
 				if self.conditions.trial["mode"+self.moveString] != "visual":
@@ -191,16 +193,18 @@ class Field(QGLWidget):
 			QTimer.singleShot(1000*dt, self.changeState) 
 		elif self.state=="move0":
 			self.state = "move1ReInit"
-			self.t0Trial = -1
 			if self.swapMoves:
 				self.moveString = "Reference"
 			else:
 				self.moveString = "Trial"
 			self.initializeObjects(self.moveString)
 			print("Sled position: ",self.pViewer[0])
-			QTimer.singleShot(500, self.changeState) # 500ms: The extra milliseconds is to prevent the sled server to overwrite the movement file on the PLC unit while movement is being executed. Furthermore, it prevents perceptual overlap between the comparison and reference (or vice versa) movements.
+			if not self.swapMoves:
+				self.t0PreTrial = time.time()
+			QTimer.singleShot(1000, self.changeState) # 500ms: The extra milliseconds is to prevent the sled server to overwrite the movement file on the PLC unit while movement is being executed. Furthermore, it prevents perceptual overlap between the comparison and reference (or vice versa) movements.
 		elif self.state=="move1ReInit":
 			self.state = "move1"
+			self.t0PreTrial = -1
 			d = self.conditions.trial["d"+self.moveString]
 			ddVes=0 # vestibular reference + trial move
 			if self.conditions.trial["modeReference"] != 'visual':
@@ -220,7 +224,6 @@ class Field(QGLWidget):
 			QTimer.singleShot(1000*dt+np.random.uniform(0.1, 0.3), self.changeState) #Wait random time between 100 and 300ms before playing response beep. This to avoid the beep being a motion-stop cue
 		elif self.state=="move1":
 			self.state="responseBeep"
-			self.t0Trial = -1
 			logging.info("state: wait (for input)")
 			self.soundBeep()
 			QTimer.singleShot(200, self.changeState)        # extra timer to make sure that fade out is complete
@@ -751,8 +754,8 @@ class Field(QGLWidget):
 			nPast += n
 			n = self.nBall
 			dt = -1
-			if self.t0Trial > 0 and self.dtBall > 0:
-				dt = (time.time() - self.t0Trial - self.t0Ball)/self.dtBall # 0-1
+			if self.t0PreTrial > 0 and self.dtBall > 0:
+				dt = (time.time() - self.t0PreTrial - self.t0Ball)/self.dtBall # 0-1
 				glUniform3fv(self.deltaPositionLocation, 1,
 					np.array(self.p0Ball + (self.p1Ball-self.p0Ball) * self.fBall(dt), "f"))
 			elif self.t0Wait > 0 and self.dtResponseBall > 0:
