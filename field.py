@@ -539,7 +539,7 @@ class Field(QGLWidget):
 				#xFixation = self.pViewer[0]
 				pp = self.positionClient.getPosition()          # get marker positions
 				p = np.array(pp).ravel().tolist()       # python has too many types
-				xFixation = 2*p[0]
+				xFixation = p[0]
 			except:
 				pass
 			
@@ -773,10 +773,10 @@ class Field(QGLWidget):
 			glUniform3fv(self.colorLocation, 1, intensityLevel*np.array([1,1,1],"f"))
 			glUniform3fv(self.deltaPositionLocation, 1, np.array([0, 0, 0], "f"))
 			nPast += n 
-			if mode!='visual':
-				glUniform1f(self.moveFactorLocation, 1.0)
-			else:
-				glUniform1f(self.moveFactorLocation, 0.0)
+			#if mode!='visual':
+			glUniform1f(self.moveFactorLocation, 1.0)
+			#else:
+				#glUniform1f(self.moveFactorLocation, 0.0)
 			glUniform1f(self.xEyeLocation, 0)
 			if mode!='vestibular':
 				glDrawArrays(GL_POINTS, nPast, 1)
