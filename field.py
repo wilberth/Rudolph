@@ -751,6 +751,7 @@ class Field(QGLWidget):
 			glDrawArrays(GL_POINTS, nPast, n)
 			
 			# draw ball
+			glUniform1f(self.moveFactorLocation, 0.0)
 			nPast += n
 			n = self.nBall
 			dt = -1
