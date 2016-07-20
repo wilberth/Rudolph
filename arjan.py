@@ -55,7 +55,12 @@ class Main(QMainWindow):
 		self.text = QLabel("Paused")
 		self.text.setStyleSheet('text-align: right; color:#a00000; background-color:#000000; font-size: 100pt; font-family: Sans-Serif;')
 		self.text.setMinimumSize(1400, 525)
-		self.setCentralWidget(self.text)
+		
+		# together in stack
+		self.stack = QStackedWidget(self)
+		self.stack.addWidget(self.field)
+		self.stack.addWidget(self.text)
+		self.setCentralWidget(self.stack)
 		
 		# dialogs
 		self.errorMessageDialog = QErrorMessage(self)
@@ -202,11 +207,13 @@ class Main(QMainWindow):
 				
 	def toggleText(self, text=True):
 		if text:
-			self.centralWidget().setParent(None) # if you do not do this the field widget will be deleted in the next line
-			self.setCentralWidget(self.text)
+			self.stack.setCurrentIndex(1)
+			#self.centralWidget().setParent(None) # if you do not do this the field widget will be deleted in the next line
+			#self.setCentralWidget(self.text)
 		else:
-			self.centralWidget().setParent(None)
-			self.setCentralWidget(self.field)
+			self.stack.setCurrentIndex(0)
+			#self.centralWidget().setParent(None)
+			#self.setCentralWidget(self.field)
 			
 
 	def processCommandLine(self):

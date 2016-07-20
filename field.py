@@ -156,7 +156,7 @@ class Field(QGLWidget):
 		if self.state=="home" and self.requestSleep==True:
 			self.state = "sleep"
 			self.requestSleep = False
-			self.parent().toggleText(True)
+			self.parent().parent().toggleText(True)
 			self.sledClient.sendCommand("Lights On")
 		elif self.state=="sleep" or self.state=="home":
 			self.sledClient.sendCommand("Lights Off")
@@ -230,14 +230,14 @@ class Field(QGLWidget):
 		elif self.state=="responseBeep":
 			self.state="wait"
 			self.t0Wait = time.time()
-			self.parent().downAction.setEnabled(True)
-			self.parent().upAction.setEnabled(True)
-			#self.parent().j.setEnabled(True)
+			self.parent().parent().downAction.setEnabled(True)
+			self.parent().parent().upAction.setEnabled(True)
+			#self.parent().parent().j.setEnabled(True)
 		elif self.state=="wait":
 			self.state = "fadeOut"
 			self.t0Wait = -1
 			logging.info("state: fadeOut")
-			#self.parent().j.setEnabled(False)
+			#self.parent().parent().j.setEnabled(False)
 			QTimer.singleShot(500, self.changeState)
 		elif self.state=="fadeOut":
 			self.state = "home"
@@ -249,8 +249,8 @@ class Field(QGLWidget):
 			dt = self.sledClient.goto(self.h, self.tHoming)	# Homing to -reference position
 			logging.info("state: homing: d = {} m, dt = {} s".format(self.h, dt))
 			QTimer.singleShot(1000*(dt), self.changeState)
-			self.parent().downAction.setEnabled(False)
-			self.parent().upAction.setEnabled(False)
+			self.parent().parent().downAction.setEnabled(False)
+			self.parent().parent().upAction.setEnabled(False)
 		else:
 			logging.warning("state unknown: {}".format(self.state))
 			
@@ -265,7 +265,7 @@ class Field(QGLWidget):
 				self.conditions.trial['swapMoves'] = False
 			if self.conditions.iTrial < self.conditions.nTrial-1:
 				if self.conditions.nextTrial(data = data):
-					self.parent().startStop()
+					self.parent().parent().startStop()
 			else:
 				# last data
 				self.conditions.addData(data)
@@ -281,12 +281,12 @@ class Field(QGLWidget):
 				self.views = ('LEFTSIM', 'RIGHTSIM')
 			else:
 				self.views = ('LEFT', 'RIGHT')
-			self.parent().leftAction.setEnabled(True)
-			self.parent().rightAction.setEnabled(True)
+			self.parent().parent().leftAction.setEnabled(True)
+			self.parent().parent().rightAction.setEnabled(True)
 		else:
 			self.views = ('ALL',)
-			self.parent().leftAction.setEnabled(False)
-			self.parent().rightAction.setEnabled(False)
+			self.parent().parent().leftAction.setEnabled(False)
+			self.parent().parent().rightAction.setEnabled(False)
 		self.update()
 		
 	stereoIntensityLevel = 0 # integer -9 -- 9
@@ -296,7 +296,7 @@ class Field(QGLWidget):
 			self.stereoIntensityLevel = level
 		elif abs(self.stereoIntensityLevel + relative) < 10:
 			self.stereoIntensityLevel += relative
-		self.parent().statusBar().showMessage("Stereo intensity: {}".format(self.stereoIntensityLevel))
+		self.parent().parent().statusBar().showMessage("Stereo intensity: {}".format(self.stereoIntensityLevel))
 		self.update()
 		
 	def viewerMove(self, x, y=None):
